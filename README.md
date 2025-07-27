@@ -458,7 +458,7 @@ Se realizó las relaciones y cardinalidades respectivas del modelo lógico con s
 ❖ Entidad intermedia: medicamento_tratamiento.
 
                       Gráfica
-![modeloLogico](image)                     
+![modeloLogico](ModeloLogicoHospitalario.png)                     
 
 
 Modelo lógico:
