@@ -1,18 +1,18 @@
 
-                Proyecto MONGODB II
+                        Proyecto MONGODB II
 
-              Naya Zarela Lizcano Jaimes 
-               Juan Eduardo Pinilla Guzman 
+                     Naya Zarela Lizcano Jaimes 
+                      Juan Eduardo Pinilla Guzman 
 
-                         S1 
+                                S1 
 
-            Pedro Felipe Gómez Bonilla 
+                      Pedro Felipe Gómez Bonilla 
 
-                    Campus Lands 
+                             Campus Lands 
 
-                    Ruta NodeJS
-                Cajasan, Bucaramanga
-                      2025
+                            Ruta NodeJS
+                        Cajasan, Bucaramanga
+                                2025
 
 
                       Introducción 
