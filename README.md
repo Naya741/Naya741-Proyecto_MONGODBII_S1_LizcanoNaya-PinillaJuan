@@ -258,10 +258,9 @@ Se implementa mediante la entidad intermedia “Medicamento_Tratamiento”
 ❖ Relación: “Corresponde”, Un miembro de personal puede estar asociado a un único rol específico(médico, enfermero, administrativo, mantenimiento), y cada rol específico corresponde a un personal.
 
 ❖ Cardinalidad: 1-1 (uno a uno). 
+Grafica:
 
-                      Grafica:
-```mermaid
-
+```mermaid 
 graph TD
     %% Entidades principales
     Director[Director]
@@ -369,11 +368,11 @@ graph TD
     Medicamento -->|se usa en| Tratamiento
     Tratamiento -->|se aplica en| Hospital
     Diagnostico -->|requiere| Tratamiento
-    ```
+``` 
 
 
 
-             Construcción del Modelo Lógico 
+Construcción del Modelo Lógico 
 Se ha diseñado el modelo lógico teniendo en cuenta el modelo conceptual, incorporando detalles más específicos como las características de cada atributo, incluidas las claves primarias, foráneas y las relaciones de cardinalidad. 
 
 Descripción 
@@ -567,9 +566,9 @@ Se realizó las relaciones y cardinalidades respectivas del modelo lógico con s
 
 ❖ Entidad intermedia: medicamento_tratamiento.
 
-                      Gráfica
+Gráfica
+
 ```mermaid     
-                
 erDiagram
     MEDICAMENTO {
         int id_medicamento PK
@@ -652,7 +651,7 @@ erDiagram
     AREA_MEDICA ||--o{ TRATAMIENTO : "aplica"
     PACIENTE ||--o{ VISITA : "programa"
     VISITA ||--o{ TRATAMIENTO : "genera"
-    ```
+```
 
 Modelo lógico:
 
