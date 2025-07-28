@@ -260,8 +260,118 @@ Se implementa mediante la entidad intermedia “Medicamento_Tratamiento”
 ❖ Cardinalidad: 1-1 (uno a uno). 
 
                       Grafica:
+```mermaid
 
-![modeloConceptual](ModeloConceptualHospitalario.png)
+graph TD
+    %% Entidades principales
+    Director[Director]
+    Hospital[Hospital]
+    Personal[Personal]
+    AreaMedica[Área Médica]
+    Medicamento[Medicamento]
+    Paciente[Paciente]
+    Visita[Visita]
+    Diagnostico[Diagnóstico]
+    Tratamiento[Tratamiento]
+
+    %% Atributos de Director
+    DNombre((nombre_completo))
+    DDoc((documento))
+    DEsp((especialidad))
+    DCorreo((correo))
+    DTel((telefono))
+
+    %% Atributos de Hospital
+    HNombre((nombre))
+    HMun((municipio))
+    HDir((direccion))
+
+    %% Atributos de Personal
+    PNombre((nombre_completo))
+    PEsp((especialidad))
+    PRol((rol))
+
+    %% Atributos de Área Médica
+    ANombre((nombre))
+
+    %% Atributos de Medicamento
+    MNombre((nombre))
+    MFab((fabricante))
+    MTipo((tipo))
+    MStock((stock_actual))
+
+    %% Atributos de Paciente
+    PacNombre((nombre_completo))
+    PacDoc((documento))
+    PacFecha((fecha_nacimiento))
+    PacSexo((sexo))
+    PacTel((telefono))
+    PacCorreo((correo))
+
+    %% Atributos de Visita
+    VFecha((fecha_visita))
+    VHospital((es_hospital))
+
+    %% Atributos de Diagnóstico
+    DiagMotivo((motivo))
+
+    %% Atributos de Tratamiento
+    TFecha((fecha_inicio))
+    TDesc((descripcion))
+
+    %% Conexiones de atributos con entidades
+    Director --> DNombre
+    Director --> DDoc
+    Director --> DEsp
+    Director --> DCorreo
+    Director --> DTel
+
+    Hospital --> HNombre
+    Hospital --> HMun
+    Hospital --> HDir
+
+    Personal --> PNombre
+    Personal --> PEsp
+    Personal --> PRol
+
+    AreaMedica --> ANombre
+
+    Medicamento --> MNombre
+    Medicamento --> MFab
+    Medicamento --> MTipo
+    Medicamento --> MStock
+
+    Paciente --> PacNombre
+    Paciente --> PacDoc
+    Paciente --> PacFecha
+    Paciente --> PacSexo
+    Paciente --> PacTel
+    Paciente --> PacCorreo
+
+    Visita --> VFecha
+    Visita --> VHospital
+
+    Diagnostico --> DiagMotivo
+
+    Tratamiento --> TFecha
+    Tratamiento --> TDesc
+
+    %% Relaciones entre entidades
+    Director -->|administra| Hospital
+    Hospital -->|cuenta con| Personal
+    Hospital -->|tiene| AreaMedica
+    Hospital -->|administra| Medicamento
+    Personal -->|trabaja en| AreaMedica
+    AreaMedica -->|atiende| Visita
+    Paciente -->|realiza| Visita
+    Paciente -->|recibe| Diagnostico
+    Visita -->|genera| Diagnostico
+    Medicamento -->|se usa en| Tratamiento
+    Tratamiento -->|se aplica en| Hospital
+    Diagnostico -->|requiere| Tratamiento
+    ```
+
+
 
              Construcción del Modelo Lógico 
 Se ha diseñado el modelo lógico teniendo en cuenta el modelo conceptual, incorporando detalles más específicos como las características de cada atributo, incluidas las claves primarias, foráneas y las relaciones de cardinalidad. 
@@ -458,8 +568,91 @@ Se realizó las relaciones y cardinalidades respectivas del modelo lógico con s
 ❖ Entidad intermedia: medicamento_tratamiento.
 
                       Gráfica
-![modeloLogico](ModeloLogicoHospitalario.png)                     
+```mermaid     
+                
+erDiagram
+    MEDICAMENTO {
+        int id_medicamento PK
+        int id_hospital FK
+        string nombre
+        string fabricante
+        string tipo
+        int stock_actual
+    }
+    
+    HOSPITAL {
+        int id_hospital PK
+        int id_director FK
+        string nombre
+        string ciudad
+        string direccion
+    }
+    
+    DIRECTOR {
+        int id_director PK
+        string nombre
+        string documento
+        string correo
+        string telefono
+    }
+    
+    AREA_MEDICA {
+        int id_area PK
+        int id_hospital FK
+        string nombre
+    }
+    
+    PERSONAL {
+        int id_personal PK
+        int id_hospital FK
+        string nombre
+        string documento
+        string rol
+        string especialidad
+        string correo
+        string telefono
+    }
+    
+    VISITA {
+        int id_visita PK
+        int id_paciente FK
+        int id_hospital FK
+        int id_area FK
+        date fecha_visita
+        string motivo
+        string diagnostico
+    }
+    
+    PACIENTE {
+        int id_paciente PK
+        string nombre
+        string documento
+        date fecha_nacimiento
+        string sexo
+        string correo
+        string telefono
+    }
+    
+    TRATAMIENTO {
+        int id_tratamiento PK
+        int id_visita FK
+        int id_area FK
+        string nombre
+        string descripcion
+        decimal costo
+    }
 
+    %% Relaciones con cardinalidades
+    DIRECTOR ||--|| HOSPITAL : "administra"
+    HOSPITAL ||--o{ MEDICAMENTO : "gestiona"
+    HOSPITAL ||--o{ AREA_MEDICA : "contiene"
+    HOSPITAL ||--o{ PERSONAL : "emplea"
+    HOSPITAL ||--o{ VISITA : "atiende"
+    AREA_MEDICA ||--o{ VISITA : "realiza"
+    AREA_MEDICA ||--o{ TRATAMIENTO : "aplica"
+    PACIENTE ||--o{ VISITA : "programa"
+    VISITA ||--o{ TRATAMIENTO : "genera"
+    ```
 
 Modelo lógico:
 
