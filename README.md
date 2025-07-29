@@ -1222,13 +1222,2038 @@ erDiagram
     Medicamento ||--o{ Medicamento_tratamiento : "usado_en"
     
     Tratamiento ||--o{ Medicamento_tratamiento : "requiere"
-    ```
+```
 
+## Construcción del Modelo Físico:
 
+Se diseñó el modelo físico considerando el modelo lógico que incluye todas las entidades, sus atributos y las relaciones entre ellas. Además, este modelo incorpora los tipos de datos de los atributos previamente definidos, los cuales fueron estructurados en tablas utilizando el lenguaje de un Sistema de Gestión de Bases en MONGODB .
 
+## Descripción 
 
+El modelo físico se diseñó para funcionar en MONGODB, donde se haran 100 consultas enfocadas en toda el sistema hospitalario. 
+Creación de colecciones
+Para crear la base de datos utilice el siguiente comando: 
+create database Hospitales; 
+Para utilizar cada colección use: 
+use Hospitales; 
+Comenzaremos creando las colecciones de cada apartado de los hospitales: 
 
+1. Creación de la colección directores:
+```js
+db.createCollection("directores", {
+  validator: {
+    $jsonSchema: {
+      bsonType: "object",
+      required: ["_id", "nombre", "documento", "correo", "telefono"],
+      properties: {
+        _id: { bsonType: "string" },
+        nombre: { bsonType: "string" },
+        documento: { bsonType: "string" },
+        correo: { bsonType: "string" },
+        telefono: { bsonType: "string" }
+      }
+    }
+  }
+});
+```
 
+* Insertar datos a la coleccion ("directores):
+```js
+db.directores.insertMany([
+  {
+    "_id": "DIR001",
+    "nombre": "Dr. Carlos Alberto Mendoza Rivera",
+    "documento": "12345678",
+    "correo": "carlos.mendoza@hospitales.gov.co",
+    "telefono": "3001234567"
+  },
+  {
+    "_id": "DIR002", 
+    "nombre": "Dra. María Elena Rodríguez Vargas",
+    "documento": "87654321",
+    "correo": "maria.rodriguez@hospitales.gov.co",
+    "telefono": "3007654321"
+  },
+  {
+    "_id": "DIR003",
+    "nombre": "Dr. José Antonio Vargas Herrera",
+    "documento": "11223344",
+    "correo": "jose.vargas@hospitales.gov.co", 
+    "telefono": "3001122334"
+  }
+]);
+```
+2. Creación de la colección hospitales :
+```js
+db.createCollection("hospitales", {
+  validator: {
+    $jsonSchema: {
+      bsonType: "object",
+      required: ["_id", "nombre", "ciudad", "direccion", "id_director"],
+      properties: {
+        _id: { bsonType: "string" },
+        nombre: { bsonType: "string" },
+        ciudad: { bsonType: "string" },
+        direccion: { bsonType: "string" },
+        id_director: { bsonType: "string" }
+      }
+    }
+  }
+});
+```
 
+* Insertar datos a la coleccion ("hospitales"):
+```js
+db.hospitales.insertMany([ {
+      "id_hospital": "HOS001",
+      "nombre": "Hospital Universitario de Santander (HUS)",
+      "ciudad": "Bucaramanga",
+      "direccion": "Carrera 33 #28-126",
+      "id_director": "DIR001"
+    },
+    {
+      "id_hospital": "HOS002", 
+      "nombre": "Hospital Universitario Los Comuneros",
+      "ciudad": "Bucaramanga",
+      "direccion": "Autopista Floridablanca Km 1",
+      "id_director": "DIR001"
+    },
+    {
+      "id_hospital": "HOS003",
+      "nombre": "E.S.E. Hospital San Juan de Dios de Floridablanca",
+      "ciudad": "Floridablanca", 
+      "direccion": "Calle 4 #11-50",
+      "id_director": "DIR002"
+    },
+    {
+      "id_hospital": "HOS004",
+      "nombre": "Hospital Internacional de Colombia",
+      "ciudad": "Bucaramanga",
+      "direccion": "Calle 155 #23-09",
+      "id_director": "DIR003"
+    }
+]);
+```
 
+3. Creación de la colección roles :
+```js
+db.createCollection("roles", {
+  validator: {
+    $jsonSchema: {
+      bsonType: "object",
+      required: ["_id", "nombre_rol"],
+      properties: {
+        _id: { bsonType: "string" },
+        nombre_rol: { bsonType: "string" }
+      }
+    }
+  }
+});
+```
 
+* Insertar datos a la coleccion ("roles"):
+```js
+db.roles.insertMany([ {
+      "id_hospital": "HOS001",
+      "nombre": "Hospital Universitario de Santander (HUS)",
+      "ciudad": "Bucaramanga",
+      "direccion": "Carrera 33 #28-126",
+      "id_director": "DIR001"
+    },
+    {
+      "id_hospital": "HOS002", 
+      "nombre": "Hospital Universitario Los Comuneros",
+      "ciudad": "Bucaramanga",
+      "direccion": "Autopista Floridablanca Km 1",
+      "id_director": "DIR001"
+    },
+    {
+      "id_hospital": "HOS003",
+      "nombre": "E.S.E. Hospital San Juan de Dios de Floridablanca",
+      "ciudad": "Floridablanca", 
+      "direccion": "Calle 4 #11-50",
+      "id_director": "DIR002"
+    },
+    {
+      "id_hospital": "HOS004",
+      "nombre": "Hospital Internacional de Colombia",
+      "ciudad": "Bucaramanga",
+      "direccion": "Calle 155 #23-09",
+      "id_director": "DIR003"
+    }
+]);
+```
+
+4. Creación de la colección especialidades :
+```js
+db.createCollection("especialidades", {
+  validator: {
+    $jsonSchema: {
+      bsonType: "object",
+      required: ["_id", "nombre_especialidad"],
+      properties: {
+        _id: { bsonType: "string" },
+        nombre_especialidad: { bsonType: "string" }
+      }
+    }
+  }
+});
+```
+
+* Insertar datos a la coleccion ("especialidades"):
+```js
+db.especialidades.insertMany([ {
+      "id_especialidad": "ESP001",
+      "nombre_especialidad": "Cardiología"
+    },
+    {
+      "id_especialidad": "ESP002",
+      "nombre_especialidad": "Cirugía cardiovascular"
+    },
+    {
+      "id_especialidad": "ESP003", 
+      "nombre_especialidad": "Neurología"
+    },
+    {
+      "id_especialidad": "ESP004",
+      "nombre_especialidad": "Neumología"
+    },
+    {
+      "id_especialidad": "ESP005",
+      "nombre_especialidad": "Gastroenterología"
+    },
+    {
+      "id_especialidad": "ESP006",
+      "nombre_especialidad": "Endocrinología"
+    },
+    {
+      "id_especialidad": "ESP007",
+      "nombre_especialidad": "Pediatría"
+    },
+    {
+      "id_especialidad": "ESP008",
+      "nombre_especialidad": "Reumatología"
+    },
+    {
+      "id_especialidad": "ESP009",
+      "nombre_especialidad": "Infectología"
+    },
+    {
+      "id_especialidad": "ESP010",
+      "nombre_especialidad": "Oncología clínica"
+    },
+    {
+      "id_especialidad": "ESP011",
+      "nombre_especialidad": "Dermatología"
+    },
+    {
+      "id_especialidad": "ESP012",
+      "nombre_especialidad": "Psiquiatría"
+    },
+    {
+      "id_especialidad": "ESP013",
+      "nombre_especialidad": "Otorrinolaringología"
+    },
+    {
+      "id_especialidad": "ESP014",
+      "nombre_especialidad": "Medicina Interna"
+    },
+    {
+      "id_especialidad": "ESP015",
+      "nombre_especialidad": "Medicina Familiar"
+    },
+    {
+      "id_especialidad": "ESP016",
+      "nombre_especialidad": "Nefrología"
+    },
+    {
+      "id_especialidad": "ESP017",
+      "nombre_especialidad": "Ginecología"
+    },
+    {
+      "id_especialidad": "ESP018",
+      "nombre_especialidad": "Psicología"
+    },
+    {
+      "id_especialidad": "ESP019",
+      "nombre_especialidad": "Medicina General"
+    },
+    {
+      "id_especialidad": "ESP020",
+      "nombre_especialidad": "Obstetricia"
+    },
+    {
+      "id_especialidad": "ESP021",
+      "nombre_especialidad": "Fisioterapia"
+    },
+    {
+      "id_especialidad": "ESP022",
+      "nombre_especialidad": "Terapia Respiratoria"
+    },
+    {
+      "id_especialidad": "ESP023",
+      "nombre_especialidad": "Neurocirugía"
+    },
+    {
+      "id_especialidad": "ESP024",
+      "nombre_especialidad": "Oncología quirúrgica"
+    },
+    {
+      "id_especialidad": "ESP025",
+      "nombre_especialidad": "Urología"
+    },
+    {
+      "id_especialidad": "ESP026",
+      "nombre_especialidad": "Cirugía plástica"
+    },
+    {
+      "id_especialidad": "ESP027",
+      "nombre_especialidad": "Unidad de Quemados"
+    },
+    {
+      "id_especialidad": "ESP028",
+      "nombre_especialidad": "Medicina integrativa"
+    }
+]);
+```
+
+5. Creación de la colección areas_medicas :
+```js
+db.createCollection("areas_medicas", {
+  validator: {
+    $jsonSchema: {
+      bsonType: "object",
+      required: ["_id", "nombre", "id_hospital"],
+      properties: {
+        _id: { bsonType: "string" },
+        nombre: { bsonType: "string" },
+        id_hospital: { bsonType: "string" }
+      }
+    }
+  }
+});
+```
+
+* Insertar datos a la coleccion ("areas_medicas"):
+```js
+db.areas_medicas.insertMany([ {
+      "id_area": "AREA001",
+      "nombre": "Cardiología y Cirugía cardiovascular",
+      "id_hospital": "HOS001"
+    },
+    {
+      "id_area": "AREA002",
+      "nombre": "Neurología", 
+      "id_hospital": "HOS001"
+    },
+    {
+      "id_area": "AREA003",
+      "nombre": "Neumología",
+      "id_hospital": "HOS001"
+    },
+    {
+      "id_area": "AREA004",
+      "nombre": "Gastroenterología",
+      "id_hospital": "HOS001"
+    },
+    {
+      "id_area": "AREA005",
+      "nombre": "Endocrinología",
+      "id_hospital": "HOS001"
+    },
+    {
+      "id_area": "AREA006",
+      "nombre": "Pediatría",
+      "id_hospital": "HOS001"
+    },
+    {
+      "id_area": "AREA007",
+      "nombre": "Reumatología",
+      "id_hospital": "HOS001"
+    },
+    {
+      "id_area": "AREA008",
+      "nombre": "Infectología",
+      "id_hospital": "HOS001"
+    },
+    {
+      "id_area": "AREA009",
+      "nombre": "Oncología clínica",
+      "id_hospital": "HOS001"
+    },
+    {
+      "id_area": "AREA010",
+      "nombre": "Dermatología",
+      "id_hospital": "HOS001"
+    },
+    {
+      "id_area": "AREA011",
+      "nombre": "Psiquiatría",
+      "id_hospital": "HOS001"
+    },
+    {
+      "id_area": "AREA012",
+      "nombre": "Otorrinolaringología",
+      "id_hospital": "HOS001"
+    },
+    {
+      "id_area": "AREA013",
+      "nombre": "Medicina Interna y Familiar",
+      "id_hospital": "HOS002"
+    },
+    {
+      "id_area": "AREA014",
+      "nombre": "Cardiología",
+      "id_hospital": "HOS002"
+    },
+    {
+      "id_area": "AREA015",
+      "nombre": "Nefrología",
+      "id_hospital": "HOS002"
+    },
+    {
+      "id_area": "AREA016",
+      "nombre": "Gastroenterología",
+      "id_hospital": "HOS002"
+    },
+    {
+      "id_area": "AREA017",
+      "nombre": "Ginecología",
+      "id_hospital": "HOS002"
+    },
+    {
+      "id_area": "AREA018",
+      "nombre": "Infectología",
+      "id_hospital": "HOS002"
+    },
+    {
+      "id_area": "AREA019",
+      "nombre": "Reumatología",
+      "id_hospital": "HOS002"
+    },
+    {
+      "id_area": "AREA020",
+      "nombre": "Pediatría",
+      "id_hospital": "HOS002"
+    },
+    {
+      "id_area": "AREA021",
+      "nombre": "Psicología",
+      "id_hospital": "HOS002"
+    },
+    {
+      "id_area": "AREA022",
+      "nombre": "Consulta general y pediatría",
+      "id_hospital": "HOS003"
+    },
+    {
+      "id_area": "AREA023",
+      "nombre": "Medicina general",
+      "id_hospital": "HOS003"
+    },
+    {
+      "id_area": "AREA024",
+      "nombre": "Ginecología y obstetricia",
+      "id_hospital": "HOS003"
+    },
+    {
+      "id_area": "AREA025",
+      "nombre": "Psicología",
+      "id_hospital": "HOS003"
+    },
+    {
+      "id_area": "AREA026",
+      "nombre": "Fisioterapia",
+      "id_hospital": "HOS003"
+    },
+    {
+      "id_area": "AREA027",
+      "nombre": "Terapia respiratoria",
+      "id_hospital": "HOS003"
+    },
+    {
+      "id_area": "AREA028",
+      "nombre": "Neurología",
+      "id_hospital": "HOS004"
+    },
+    {
+      "id_area": "AREA029",
+      "nombre": "Neurocirugía",
+      "id_hospital": "HOS004"
+    },
+    {
+      "id_area": "AREA030",
+      "nombre": "Oncología clínica y quirúrgica",
+      "id_hospital": "HOS004"
+    },
+    {
+      "id_area": "AREA031",
+      "nombre": "Urología",
+      "id_hospital": "HOS004"
+    },
+    {
+      "id_area": "AREA032",
+      "nombre": "Nefrología",
+      "id_hospital": "HOS004"
+    },
+    {
+      "id_area": "AREA033",
+      "nombre": "Gastroenterología",
+      "id_hospital": "HOS004"
+    },
+    {
+      "id_area": "AREA034",
+      "nombre": "Neumología",
+      "id_hospital": "HOS004"
+    },
+    {
+      "id_area": "AREA035",
+      "nombre": "Endocrinología",
+      "id_hospital": "HOS004"
+    },
+    {
+      "id_area": "AREA036",
+      "nombre": "Ginecología",
+      "id_hospital": "HOS004"
+    },
+    {
+      "id_area": "AREA037",
+      "nombre": "Pediatría general",
+      "id_hospital": "HOS004"
+    },
+    {
+      "id_area": "AREA038",
+      "nombre": "Cirugía plástica",
+      "id_hospital": "HOS004"
+    },
+    {
+      "id_area": "AREA039",
+      "nombre": "Unidad de Quemados",
+      "id_hospital": "HOS004"
+    },
+    {
+      "id_area": "AREA040",
+      "nombre": "Medicina integrativa",
+      "id_hospital": "HOS004"
+    }
+]);
+```
+
+6. Creacion de la coleccion personal:
+```js
+db.createCollection("personal", {
+  validator: {
+    $jsonSchema: {
+      bsonType: "object",
+      required: ["_id", "id_hospital", "nombre", "documento", "id_rol", "correo", "telefono", "salario"],
+      properties: {
+        _id: { bsonType: "string" },
+        id_hospital: { bsonType: "string" },
+        nombre: { bsonType: "string" },
+        documento: { bsonType: "string" },
+        numero_colegiatura: { bsonType: ["string", "null"] },
+        id_rol: { bsonType: "string" },
+        id_especialidad: { bsonType: ["string", "null"] },
+        correo: { bsonType: "string" },
+        telefono: { bsonType: "string" },
+        salario: { bsonType: "number" }
+      }
+    }
+  }
+});
+```
+
+* Insertar datos a la coleccion ("personal"):
+```js
+db.personal.insertMany([{
+      "id_personal": "PER001",
+      "id_hospital": "HOS001",
+      "nombre": "Dr. Roberto Silva Mendoza",
+      "documento": "98765432",
+      "numero_colegiatura": "COL001",
+      "id_rol": "001",
+      "id_especialidad": "ESP014",
+      "correo": "roberto.silva@hus.gov.co",
+      "telefono": "3009876543",
+      "salario": 8500000
+    },
+    {
+      "id_personal": "PER002",
+      "id_hospital": "HOS001", 
+      "nombre": "Dr. Ana Lucía Pérez Torres",
+      "documento": "45678912",
+      "numero_colegiatura": "COL002",
+      "id_rol": "002",
+      "id_especialidad": "ESP001",
+      "correo": "ana.perez@hus.gov.co",
+      "telefono": "3004567891",
+      "salario": 6500000
+    },
+    {
+      "id_personal": "PER003",
+      "id_hospital": "HOS001",
+      "nombre": "Dr. Miguel Ángel Torres Castro",
+      "documento": "78912345",
+      "numero_colegiatura": "COL003",
+      "id_rol": "002", 
+      "id_especialidad": "ESP003",
+      "correo": "miguel.torres@hus.gov.co",
+      "telefono": "3007891234",
+      "salario": 7200000
+    },
+    {
+      "id_personal": "PER004",
+      "id_hospital": "HOS001",
+      "nombre": "Dra. Carmen Rosa Jiménez Vargas",
+      "documento": "32165498",
+      "numero_colegiatura": "COL004",
+      "id_rol": "002",
+      "id_especialidad": "ESP007",
+      "correo": "carmen.jimenez@hus.gov.co", 
+      "telefono": "3003216549",
+      "salario": 6800000
+    },
+    {
+      "id_personal": "PER005",
+      "id_hospital": "HOS001",
+      "nombre": "Dr. Fernando Andrés López Herrera",
+      "documento": "65498732",
+      "numero_colegiatura": "COL005",
+      "id_rol": "002",
+      "id_especialidad": "ESP010",
+      "correo": "fernando.lopez@hus.gov.co",
+      "telefono": "3006549873",
+      "salario": 7500000
+    },
+    {
+      "id_personal": "PER006",
+      "id_hospital": "HOS001",
+      "nombre": "Enfermera Luz Marina Gómez Ruiz",
+      "documento": "65432198",
+      "numero_colegiatura": null,
+      "id_rol": "003",
+      "id_especialidad": null,
+      "correo": "luz.gomez@hus.gov.co",
+      "telefono": "3006543219",
+      "salario": 2800000
+    },
+    {
+      "id_personal": "PER007",
+      "id_hospital": "HOS001",
+      "nombre": "Enfermera Patricia Morales Díaz",
+      "documento": "98765123",
+      "numero_colegiatura": null,
+      "id_rol": "003",
+      "id_especialidad": null,
+      "correo": "patricia.morales@hus.gov.co",
+      "telefono": "3009876512",
+      "salario": 2800000
+    },
+    {
+      "id_personal": "PER008",
+      "id_hospital": "HOS001",
+      "nombre": "Enfermero Carlos Ruiz Sánchez",
+      "documento": "14725836",
+      "numero_colegiatura": null,
+      "id_rol": "003",
+      "id_especialidad": null,
+      "correo": "carlos.ruiz@hus.gov.co",
+      "telefono": "3001472583",
+      "salario": 2800000
+    },
+    {
+      "id_personal": "PER009",
+      "id_hospital": "HOS001",
+      "nombre": "Enfermera Sandra López Martínez",
+      "documento": "36925814",
+      "numero_colegiatura": null,
+      "id_rol": "003",
+      "id_especialidad": null,
+      "correo": "sandra.lopez@hus.gov.co",
+      "telefono": "3003692581",
+      "salario": 2800000
+    },
+    {
+      "id_personal": "PER010",
+      "id_hospital": "HOS001",
+      "nombre": "Enfermera Diana Herrera González",
+      "documento": "75395148",
+      "numero_colegiatura": null,
+      "id_rol": "003",
+      "id_especialidad": null,
+      "correo": "diana.herrera@hus.gov.co",
+      "telefono": "3007539514",
+      "salario": 2800000
+    },
+    {
+      "id_personal": "PER011",
+      "id_hospital": "HOS001",
+      "nombre": "Enfermero Andrés Castro Ramírez",
+      "documento": "95175346",
+      "numero_colegiatura": null,
+      "id_rol": "003",
+      "id_especialidad": null,
+      "correo": "andres.castro@hus.gov.co",
+      "telefono": "3009517534",
+      "salario": 2800000
+    },
+    {
+      "id_personal": "PER012",
+      "id_hospital": "HOS001",
+      "nombre": "Enfermera Mónica Vega Rodríguez",
+      "documento": "15935748",
+      "numero_colegiatura": null,
+      "id_rol": "003",
+      "id_especialidad": null,
+      "correo": "monica.vega@hus.gov.co",
+      "telefono": "3001593574",
+      "salario": 2800000
+    },
+    {
+      "id_personal": "PER013",
+      "id_hospital": "HOS001",
+      "nombre": "Enfermera Claudia Ramírez Torres",
+      "documento": "75315926",
+      "numero_colegiatura": null,
+      "id_rol": "003",
+      "id_especialidad": null,
+      "correo": "claudia.ramirez@hus.gov.co",
+      "telefono": "3007531592",
+      "salario": 2800000
+    },
+    {
+      "id_personal": "PER014",
+      "id_hospital": "HOS001",
+      "nombre": "Administradora Esperanza Díaz Morales",
+      "documento": "85296374",
+      "numero_colegiatura": null,
+      "id_rol": "004",
+      "id_especialidad": null,
+      "correo": "esperanza.diaz@hus.gov.co",
+      "telefono": "3008529637",
+      "salario": 3200000
+    },
+    {
+      "id_personal": "PER015",
+      "id_hospital": "HOS001",
+      "nombre": "Contador Luis Fernando Sánchez Pérez",
+      "documento": "96385274",
+      "numero_colegiatura": null,
+      "id_rol": "004",
+      "id_especialidad": null,
+      "correo": "luis.sanchez@hus.gov.co",
+      "telefono": "3009638527",
+      "salario": 3500000
+    },
+    {
+      "id_personal": "PER016",
+      "id_hospital": "HOS001",
+      "nombre": "Secretaria Rosa Elena Martínez Castro",
+      "documento": "74185296",
+      "numero_colegiatura": null,
+      "id_rol": "004",
+      "id_especialidad": null,
+      "correo": "rosa.martinez@hus.gov.co",
+      "telefono": "3007418529",
+      "salario": 2200000
+    },
+    {
+      "id_personal": "PER017",
+      "id_hospital": "HOS001",
+      "nombre": "Auxiliar Administrativo Pedro González Herrera",
+      "documento": "52963741",
+      "numero_colegiatura": null,
+      "id_rol": "004",
+      "id_especialidad": null,
+      "correo": "pedro.gonzalez@hus.gov.co",
+      "telefono": "3005296374",
+      "salario": 2000000
+    },
+    {
+      "id_personal": "PER018",
+      "id_hospital": "HOS001",
+      "nombre": "Recepcionista María José Vargas López",
+      "documento": "41852963",
+      "numero_colegiatura": null,
+      "id_rol": "004",
+      "id_especialidad": null,
+      "correo": "maria.vargas@hus.gov.co",
+      "telefono": "3004185296",
+      "salario": 1800000
+    },
+    {
+      "id_personal": "PER019",
+      "id_hospital": "HOS001",
+      "nombre": "Auxiliar de Archivo Beatriz Rojas Silva",
+      "documento": "96374185",
+      "numero_colegiatura": null,
+      "id_rol": "004",
+      "id_especialidad": null,
+      "correo": "beatriz.rojas@hus.gov.co",
+      "telefono": "3009637418",
+      "salario": 1900000
+    },
+    {
+      "id_personal": "PER020",
+      "id_hospital": "HOS001",
+      "nombre": "Coordinadora de Recursos Humanos Liliana Torres Mendoza",
+      "documento": "85274196",
+      "numero_colegiatura": null,
+      "id_rol": "004",
+      "id_especialidad": null,
+      "correo": "liliana.torres@hus.gov.co",
+      "telefono": "3008527419",
+      "salario": 3800000
+    },
+    {
+      "id_personal": "PER021",
+      "id_hospital": "HOS001",
+      "nombre": "Técnico de Mantenimiento Jorge Herrera Ramírez",
+      "documento": "74196385",
+      "numero_colegiatura": null,
+      "id_rol": "005",
+      "id_especialidad": null,
+      "correo": "jorge.herrera@hus.gov.co",
+      "telefono": "3007419638",
+      "salario": 2100000
+    },
+    {
+      "id_personal": "PER022",
+      "id_hospital": "HOS001",
+      "nombre": "Auxiliar de Limpieza Carmen Gutiérrez Díaz",
+      "documento": "19638527",
+      "numero_colegiatura": null,
+      "id_rol": "005",
+      "id_especialidad": null,
+      "correo": "carmen.gutierrez@hus.gov.co",
+      "telefono": "3001963852",
+      "salario": 1500000
+    },
+    {
+      "id_personal": "PER023",
+      "id_hospital": "HOS001",
+      "nombre": "Auxiliar de Limpieza Roberto Mendoza Torres",
+      "documento": "63852741",
+      "numero_colegiatura": null,
+      "id_rol": "005",
+      "id_especialidad": null,
+      "correo": "roberto.mendoza@hus.gov.co",
+      "telefono": "3006385274",
+      "salario": 1500000
+    },
+    {
+      "id_personal": "PER024",
+      "id_hospital": "HOS001",
+      "nombre": "Técnico Eléctrico Fernando Castro López",
+      "documento": "52741963",
+      "numero_colegiatura": null,
+      "id_rol": "005",
+      "id_especialidad": null,
+      "correo": "fernando.castro@hus.gov.co",
+      "telefono": "3005274196",
+      "salario": 2300000
+    },
+    {
+      "id_personal": "PER025",
+      "id_hospital": "HOS001",
+      "nombre": "Auxiliar de Mantenimiento Gloria Pérez Vargas",
+      "documento": "41963852",
+      "numero_colegiatura": null,
+      "id_rol": "005",
+      "id_especialidad": null,
+      "correo": "gloria.perez@hus.gov.co",
+      "telefono": "3004196385",
+      "salario": 1800000
+    },
+    {
+      "id_personal": "PER026",
+      "id_hospital": "HOS001",
+      "nombre": "Jardinero Álvaro Ramírez Sánchez",
+      "documento": "96385274",
+      "numero_colegiatura": null,
+      "id_rol": "005",
+      "id_especialidad": null,
+      "correo": "alvaro.ramirez@hus.gov.co",
+      "telefono": "3009638527",
+      "salario": 1600000
+    }
+]);
+```
+
+6. Creación de la colección ("Pacientes"):
+```js
+db.createCollection("pacientes", {
+  validator: {
+    $jsonSchema: {
+      bsonType: "object",
+      required: ["_id", "historia_clinica", "nombre", "documento", "fecha_nacimiento", "sexo", "correo", "telefono", "direccion", "seguro_medico"],
+      properties: {
+        _id: { bsonType: "string" },
+        historia_clinica: { bsonType: "string" },
+        nombre: { bsonType: "string" },
+        documento: { bsonType: "string" },
+        fecha_nacimiento: { bsonType: "string" },
+        sexo: { bsonType: "string" },
+        correo: { bsonType: "string" },
+        telefono: { bsonType: "string" },
+        direccion: { bsonType: "string" },
+        seguro_medico: { bsonType: "string" }
+      }
+    }
+  }
+});
+```
+
+* Insertar datos a la colección pacientes:
+```js
+db.pacientes.insertMany([
+  {
+      "id_paciente": "PAC001",
+      "historia_clinica": "HC001001",
+      "nombre": "María Fernanda Rodríguez Gómez",
+      "documento": "1098765432",
+      "fecha_nacimiento": "1985-03-15",
+      "sexo": "F",
+      "correo": "maria.rodriguez@email.com",
+      "telefono": "3101234567",
+      "direccion": "Calle 45 #12-34, Bucaramanga",
+      "seguro_medico": "EPS Sanitas"
+    },
+    {
+      "id_paciente": "PAC002",
+      "historia_clinica": "HC001002",
+      "nombre": "Carlos Alberto Gómez Herrera",
+      "documento": "1087654321",
+      "fecha_nacimiento": "1978-07-22",
+      "sexo": "M",
+      "correo": "carlos.gomez@email.com",
+      "telefono": "3107654321",
+      "direccion": "Carrera 27 #56-78, Bucaramanga",
+      "seguro_medico": "EPS Sura"
+    },
+    {
+      "id_paciente": "PAC003",
+      "historia_clinica": "HC001003",
+      "nombre": "Ana Lucía Martínez Torres",
+      "documento": "1076543210",
+      "fecha_nacimiento": "1992-11-08",
+      "sexo": "F",
+      "correo": "ana.martinez@email.com",
+      "telefono": "3106543210",
+      "direccion": "Avenida Quebradaseca #89-12, Bucaramanga",
+      "seguro_medico": "EPS Famisanar"
+    },
+    {
+      "id_paciente": "PAC004",
+      "historia_clinica": "HC001004",
+      "nombre": "José Miguel Torres Castro",
+      "documento": "1065432109",
+      "fecha_nacimiento": "1965-05-30",
+      "sexo": "M",
+      "correo": "jose.torres@email.com",
+      "telefono": "3105432109",
+      "direccion": "Calle 36 #23-45, Bucaramanga",
+      "seguro_medico": "EPS Nueva EPS"
+    },
+    {
+      "id_paciente": "PAC005",
+      "historia_clinica": "HC001005",
+      "nombre": "Claudia Patricia Herrera Vargas",
+      "documento": "1054321098",
+      "fecha_nacimiento": "1988-12-14",
+      "sexo": "F",
+      "correo": "claudia.herrera@email.com",
+      "telefono": "3104321098",
+      "direccion": "Carrera 15 #67-89, Bucaramanga",
+      "seguro_medico": "EPS Compensar"
+    },
+    {
+      "id_paciente": "PAC006",
+      "historia_clinica": "HC001006",
+      "nombre": "Roberto Carlos Jiménez López",
+      "documento": "1043210987",
+      "fecha_nacimiento": "1975-09-03",
+      "sexo": "M",
+      "correo": "roberto.jimenez@email.com",
+      "telefono": "3103210987",
+      "direccion": "Calle 52 #34-56, Bucaramanga",
+      "seguro_medico": "EPS Sanitas"
+    },
+    {
+      "id_paciente": "PAC007",
+      "historia_clinica": "HC001007",
+      "nombre": "Diana Carolina López Mendoza",
+      "documento": "1032109876",
+      "fecha_nacimiento": "1990-02-18",
+      "sexo": "F",
+      "correo": "diana.lopez@email.com",
+      "telefono": "3102109876",
+      "direccion": "Avenida González Valencia #78-90, Bucaramanga",
+      "seguro_medico": "EPS Sura"
+    },
+    {
+      "id_paciente": "PAC008",
+      "historia_clinica": "HC001008",
+      "nombre": "Fernando Andrés Castro Ruiz",
+      "documento": "1021098765",
+      "fecha_nacimiento": "1982-06-25",
+      "sexo": "M",
+      "correo": "fernando.castro@email.com",
+      "telefono": "3101098765",
+      "direccion": "Carrera 33 #45-67, Bucaramanga",
+      "seguro_medico": "EPS Famisanar"
+    },
+    {
+      "id_paciente": "PAC009",
+      "historia_clinica": "HC001009",
+      "nombre": "Mónica Alejandra Vega Sánchez",
+      "documento": "1010987654",
+      "fecha_nacimiento": "1995-01-12",
+      "sexo": "F",
+      "correo": "monica.vega@email.com",
+      "telefono": "3100987654",
+      "direccion": "Calle 28 #56-78, Bucaramanga",
+      "seguro_medico": "EPS Nueva EPS"
+    },
+    {
+      "id_paciente": "PAC010",
+      "historia_clinica": "HC001010",
+      "nombre": "Andrés Felipe Ramírez Díaz",
+      "documento": "1009876543",
+      "fecha_nacimiento": "1987-04-07",
+      "sexo": "M",
+      "correo": "andres.ramirez@email.com",
+      "telefono": "3109876543",
+      "direccion": "Carrera 19 #67-89, Bucaramanga",
+      "seguro_medico": "EPS Compensar"
+    },
+    {
+      "id_paciente": "PAC011",
+      "historia_clinica": "HC001011",
+      "nombre": "Sandra Milena Díaz Morales",
+      "documento": "1098765431",
+      "fecha_nacimiento": "1983-08-19",
+      "sexo": "F",
+      "correo": "sandra.diaz@email.com",
+      "telefono": "3108765431",
+      "direccion": "Calle 41 #78-90, Bucaramanga",
+      "seguro_medico": "EPS Sanitas"
+    },
+    {
+      "id_paciente": "PAC012",
+      "historia_clinica": "HC001012",
+      "nombre": "Luis Eduardo Sánchez Pérez",
+      "documento": "1087654320",
+      "fecha_nacimiento": "1979-10-26",
+      "sexo": "M",
+      "correo": "luis.sanchez@email.com",
+      "telefono": "3107654320",
+      "direccion": "Avenida Santander #89-01, Bucaramanga",
+      "seguro_medico": "EPS Sura"
+    },
+    {
+      "id_paciente": "PAC013",
+      "historia_clinica": "HC001013",
+      "nombre": "Patricia Elena González Castro",
+      "documento": "1076543219",
+      "fecha_nacimiento": "1991-03-13",
+      "sexo": "F",
+      "correo": "patricia.gonzalez@email.com",
+      "telefono": "3106543219",
+      "direccion": "Carrera 25 #12-34, Bucaramanga",
+      "seguro_medico": "EPS Famisanar"
+    },
+    {
+      "id_paciente": "PAC014",
+      "historia_clinica": "HC001014",
+      "nombre": "Miguel Ángel Vargas Herrera",
+      "documento": "1065432108",
+      "fecha_nacimiento": "1986-07-04",
+      "sexo": "M",
+      "correo": "miguel.vargas@email.com",
+      "telefono": "3105432108",
+      "direccion": "Calle 37 #45-67, Bucaramanga",
+      "seguro_medico": "EPS Nueva EPS"
+    },
+    {
+      "id_paciente": "PAC015",
+      "historia_clinica": "HC001015",
+      "nombre": "Carmen Rosa Morales González",
+      "documento": "1054321097",
+      "fecha_nacimiento": "1994-12-21",
+      "sexo": "F",
+      "correo": "carmen.morales@email.com",
+      "telefono": "3104321097",
+      "direccion": "Carrera 21 #56-78, Bucaramanga",
+      "seguro_medico": "EPS Compensar"
+    },
+    {
+      "id_paciente": "PAC016",
+      "historia_clinica": "HC001016",
+      "nombre": "Jorge Alberto Ruiz Torres",
+      "documento": "1043210986",
+      "fecha_nacimiento": "1977-05-16",
+      "sexo": "M",
+      "correo": "jorge.ruiz@email.com",
+      "telefono": "3103210986",
+      "direccion": "Calle 48 #67-89, Bucaramanga",
+      "seguro_medico": "EPS Sanitas"
+    },
+    {
+      "id_paciente": "PAC017",
+      "historia_clinica": "HC001017",
+      "nombre": "Luz Marina Peña Rodríguez",
+      "documento": "1032109875",
+      "fecha_nacimiento": "1989-09-28",
+      "sexo": "F",
+      "correo": "luz.pena@email.com",
+      "telefono": "3102109875",
+      "direccion": "Avenida Los Estudiantes #78-90, Bucaramanga",
+      "seguro_medico": "EPS Sura"
+    },
+    {
+      "id_paciente": "PAC018",
+      "historia_clinica": "HC001018",
+      "nombre": "Álvaro Enrique Mendoza Silva",
+      "documento": "1021098764",
+      "fecha_nacimiento": "1981-11-11",
+      "sexo": "M",
+      "correo": "alvaro.mendoza@email.com",
+      "telefono": "3101098764",
+      "direccion": "Carrera 29 #89-01, Bucaramanga",
+      "seguro_medico": "EPS Famisanar"
+    },
+    {
+      "id_paciente": "PAC019",
+      "historia_clinica": "HC001019",
+      "nombre": "Beatriz Elena Rojas Martínez",
+      "documento": "1010987653",
+      "fecha_nacimiento": "1993-02-05",
+      "sexo": "F",
+      "correo": "beatriz.rojas@email.com",
+      "telefono": "3100987653",
+      "direccion": "Calle 32 #12-34, Bucaramanga",
+      "seguro_medico": "EPS Nueva EPS"
+    },
+    {
+      "id_paciente": "PAC020",
+      "historia_clinica": "HC001020",
+      "nombre": "Pedro Antonio Silva López",
+      "documento": "1009876542",
+      "fecha_nacimiento": "1984-06-17",
+      "sexo": "M",
+      "correo": "pedro.silva@email.com",
+      "telefono": "3109876542",
+      "direccion": "Carrera 17 #45-67, Bucaramanga",
+      "seguro_medico": "EPS Compensar"
+    },
+    {
+      "id_paciente": "PAC021",
+      "historia_clinica": "HC001021",
+      "nombre": "Gloria Esperanza Torres Castro",
+      "documento": "1098765430",
+      "fecha_nacimiento": "1976-08-23",
+      "sexo": "F",
+      "correo": "gloria.torres@email.com",
+      "telefono": "3108765430",
+      "direccion": "Calle 44 #56-78, Bucaramanga",
+      "seguro_medico": "EPS Sanitas"
+    },
+    {
+      "id_paciente": "PAC022",
+      "historia_clinica": "HC001022",
+      "nombre": "Ricardo Javier Castro Herrera",
+      "documento": "1087654319",
+      "fecha_nacimiento": "1980-10-09",
+      "sexo": "M",
+      "correo": "ricardo.castro@email.com",
+      "telefono": "3107654319",
+      "direccion": "Avenida La Rosita #67-89, Bucaramanga",
+      "seguro_medico": "EPS Sura"
+    },
+    {
+      "id_paciente": "PAC023",
+      "historia_clinica": "HC001023",
+      "nombre": "Liliana María Herrera González",
+      "documento": "1076543218",
+      "fecha_nacimiento": "1996-01-14",
+      "sexo": "F",
+      "correo": "liliana.herrera@email.com",
+      "telefono": "3106543218",
+      "direccion": "Carrera 23 #78-90, Bucaramanga",
+      "seguro_medico": "EPS Famisanar"
+    },
+    {
+      "id_paciente": "PAC024",
+      "historia_clinica": "HC001024",
+      "nombre": "Jairo Augusto López Vargas",
+      "documento": "1065432107",
+      "fecha_nacimiento": "1974-04-20",
+      "sexo": "M",
+      "correo": "jairo.lopez@email.com",
+      "telefono": "3105432107",
+      "direccion": "Calle 39 #89-01, Bucaramanga",
+      "seguro_medico": "EPS Nueva EPS"
+    },
+    {
+      "id_paciente": "PAC025",
+      "historia_clinica": "HC001025",
+      "nombre": "Esperanza del Carmen Jiménez Díaz",
+      "documento": "1054321096",
+      "fecha_nacimiento": "1988-07-31",
+      "sexo": "F",
+      "correo": "esperanza.jimenez@email.com",
+      "telefono": "3104321096",
+      "direccion": "Carrera 31 #12-34, Bucaramanga",
+      "seguro_medico": "EPS Compensar"
+    },
+    {
+      "id_paciente": "PAC026",
+      "historia_clinica": "HC001026",
+      "nombre": "Hernando José Gómez Morales",
+      "documento": "1043210985",
+      "fecha_nacimiento": "1972-12-06",
+      "sexo": "M",
+      "correo": "hernando.gomez@email.com",
+      "telefono": "3103210985",
+      "direccion": "Calle 46 #45-67, Bucaramanga",
+      "seguro_medico": "EPS Sanitas"
+    },
+    {
+      "id_paciente": "PAC027",
+      "historia_clinica": "HC001027",
+      "nombre": "Rocío Amparo Martínez Sánchez",
+      "documento": "1032109874",
+      "fecha_nacimiento": "1985-03-18",
+      "sexo": "F",
+      "correo": "rocio.martinez@email.com",
+      "telefono": "3102109874",
+      "direccion": "Avenida Centenario #56-78, Bucaramanga",
+      "seguro_medico": "EPS Sura"
+    },
+    {
+      "id_paciente": "PAC028",
+      "historia_clinica": "HC001028",
+      "nombre": "Guillermo Enrique Vargas Pérez",
+      "documento": "1021098763",
+      "fecha_nacimiento": "1983-09-24",
+      "sexo": "M",
+      "correo": "guillermo.vargas@email.com",
+      "telefono": "3101098763",
+      "direccion": "Carrera 35 #67-89, Bucaramanga",
+      "seguro_medico": "EPS Famisanar"
+    },
+    {
+      "id_paciente": "PAC029",
+      "historia_clinica": "HC001029",
+      "nombre": "Amparo Stella Rodríguez Torres",
+      "documento": "1010987652",
+      "fecha_nacimiento": "1991-05-02",
+      "sexo": "F",
+      "correo": "amparo.rodriguez@email.com",
+      "telefono": "3100987652",
+      "direccion": "Calle 34 #78-90, Bucaramanga",
+      "seguro_medico": "EPS Nueva EPS"
+    },
+    {
+      "id_paciente": "PAC030",
+      "historia_clinica": "HC001030",
+      "nombre": "Édgar Mauricio Sánchez Castro",
+      "documento": "1009876541",
+      "fecha_nacimiento": "1987-11-15",
+      "sexo": "M",
+      "correo": "edgar.sanchez@email.com",
+      "telefono": "3109876541",
+      "direccion": "Carrera 27 #89-01, Bucaramanga",
+      "seguro_medico": "EPS Compensar"
+    }
+]);
+```
+
+7. Creacion de la colección ("categorias_medicamentos"):
+```js
+db.createCollection("categorias_medicamentos", {
+  validator: {
+    $jsonSchema: {
+      bsonType: "object",
+      required: ["_id", "nombre", "id_hospital"],
+      properties: {
+        _id: { bsonType: "string" },
+        nombre: { bsonType: "string" },
+        id_hospital: { bsonType: "string" }
+      }
+    }
+  }
+});
+```
+
+* Insertar datos a la colección categorias_medicamentos:
+```js
+db.categorias_medicamentos.insertMany([
+  {
+      "id_categoria": "CAT001",
+      "nombre": "Analgésicos"
+    },
+    {
+      "id_categoria": "CAT002",
+      "nombre": "Antibióticos"
+    },
+    {
+      "id_categoria": "CAT003",
+      "nombre": "Antiinflamatorios"
+    },
+    {
+      "id_categoria": "CAT004",
+      "nombre": "Cardiovasculares"
+    },
+    {
+      "id_categoria": "CAT005",
+      "nombre": "Neurológicos"
+    },
+    {
+      "id_categoria": "CAT006",
+      "nombre": "Gastrointestinales"
+    },
+    {
+      "id_categoria": "CAT007",
+      "nombre": "Endocrinos"
+    },
+    {
+      "id_categoria": "CAT008",
+      "nombre": "Respiratorios"
+    },
+    {
+      "id_categoria": "CAT009",
+      "nombre": "Dermatológicos"
+    },
+    {
+      "id_categoria": "CAT010",
+      "nombre": "Oncológicos"
+    }
+]);
+```
+
+8. Creacion de la colección ("medicamentos"):
+```js
+db.createCollection("categorias_medicamentos", {
+  validator: {
+    $jsonSchema: {
+      bsonType: "object",
+      required: ["_id", "nombre", "id_hospital"],
+      properties: {
+        _id: { bsonType: "string" },
+        nombre: { bsonType: "string" },
+        id_hospital: { bsonType: "string" }
+      }
+    }
+  }
+});
+```
+
+* Insertar datos a la colección medicamentos:
+```js
+db.medicamentos.insertMany([
+  {
+      "id_medicamento": "MED001",
+      "id_hospital": "HOS001",
+      "nombre": "Acetaminofén 500mg",
+      "fabricante": "Genfar",
+      "id_categoria": "CAT001",
+      "stock_actual": 500
+    },
+    {
+      "id_medicamento": "MED002",
+      "id_hospital": "HOS001",
+      "nombre": "Amoxicilina 500mg",
+      "fabricante": "MK",
+      "id_categoria": "CAT002",
+      "stock_actual": 300
+    },
+    {
+      "id_medicamento": "MED003",
+      "id_hospital": "HOS001",
+      "nombre": "Ibuprofeno 400mg",
+      "fabricante": "Tecnoquímicas",
+      "id_categoria": "CAT003",
+      "stock_actual": 250
+    },
+    {
+      "id_medicamento": "MED004",
+      "id_hospital": "HOS001",
+      "nombre": "Enalapril 10mg",
+      "fabricante": "Lafrancol",
+      "id_categoria": "CAT004",
+      "stock_actual": 180
+    },
+    {
+      "id_medicamento": "MED005",
+      "id_hospital": "HOS001",
+      "nombre": "Carbamazepina 200mg",
+      "fabricante": "Procaps",
+      "id_categoria": "CAT005",
+      "stock_actual": 120
+    },
+    {
+      "id_medicamento": "MED006",
+      "id_hospital": "HOS001",
+      "nombre": "Omeprazol 20mg",
+      "fabricante": "Tecnoquímicas",
+      "id_categoria": "CAT006",
+      "stock_actual": 400
+    },
+    {
+      "id_medicamento": "MED007",
+      "id_hospital": "HOS001",
+      "nombre": "Metformina 850mg",
+      "fabricante": "MK",
+      "id_categoria": "CAT007",
+      "stock_actual": 200
+    },
+    {
+      "id_medicamento": "MED008",
+      "id_hospital": "HOS001",
+      "nombre": "Salbutamol 100mcg",
+      "fabricante": "Genfar",
+      "id_categoria": "CAT008",
+      "stock_actual": 150
+    },
+    {
+      "id_medicamento": "MED009",
+      "id_hospital": "HOS002",
+      "nombre": "Losartán 50mg",
+      "fabricante": "Genfar",
+      "id_categoria": "CAT004",
+      "stock_actual": 200
+    },
+    {
+      "id_medicamento": "MED010",
+      "id_hospital": "HOS002",
+      "nombre": "Ciprofloxacina 500mg",
+      "fabricante": "MK",
+      "id_categoria": "CAT002",
+      "stock_actual": 180
+    },
+    {
+      "id_medicamento": "MED011",
+      "id_hospital": "HOS002",
+      "nombre": "Diclofenaco 75mg",
+      "fabricante": "Tecnoquímicas",
+      "id_categoria": "CAT003",
+      "stock_actual": 220
+    },
+    {
+      "id_medicamento": "MED012",
+      "id_hospital": "HOS002",
+      "nombre": "Furosemida 40mg",
+      "fabricante": "Lafrancol",
+      "id_categoria": "CAT004",
+      "stock_actual": 160
+    },
+    {
+      "id_medicamento": "MED013",
+      "id_hospital": "HOS003",
+      "nombre": "Paracetamol 500mg",
+      "fabricante": "Procaps",
+      "id_categoria": "CAT001",
+      "stock_actual": 350
+    },
+    {
+      "id_medicamento": "MED014",
+      "id_hospital": "HOS003",
+      "nombre": "Cefalexina 500mg",
+      "fabricante": "Genfar",
+      "id_categoria": "CAT002",
+      "stock_actual": 280
+    },
+    {
+      "id_medicamento": "MED015",
+      "id_hospital": "HOS003",
+      "nombre": "Ranitidina 150mg",
+      "fabricante": "MK",
+      "id_categoria": "CAT006",
+      "stock_actual": 190
+    },
+    {
+      "id_medicamento": "MED016",
+      "id_hospital": "HOS004",
+      "nombre": "Atorvastatina 20mg",
+      "fabricante": "Lafrancol",
+      "id_categoria": "CAT004",
+      "stock_actual": 100
+    },
+    {
+      "id_medicamento": "MED017",
+      "id_hospital": "HOS004",
+      "nombre": "Fenitoína 100mg",
+      "fabricante": "Procaps",
+      "id_categoria": "CAT005",
+      "stock_actual": 80
+    },
+    {
+      "id_medicamento": "MED018",
+      "id_hospital": "HOS004",
+      "nombre": "Cisplatino 50mg",
+      "fabricante": "Tecnoquímicas",
+      "id_categoria": "CAT010",
+      "stock_actual": 25
+    },
+    {
+      "id_medicamento": "MED019",
+      "id_hospital": "HOS004",
+      "nombre": "Betametasona 0.5mg",
+      "fabricante": "Genfar",
+      "id_categoria": "CAT009",
+      "stock_actual": 120
+    },
+    {
+      "id_medicamento": "MED020",
+      "id_hospital": "HOS004",
+      "nombre": "Budesonida 200mcg",
+      "fabricante": "MK",
+      "id_categoria": "CAT008",
+      "stock_actual": 90
+    }
+]);
+```
+
+10. Creacion de la colección ("visitas"):
+```js
+db.createCollection("categorias_medicamentos", {
+  validator: {
+    $jsonSchema: {
+      bsonType: "object",
+      required: ["_id", "nombre", "id_hospital"],
+      properties: {
+        _id: { bsonType: "string" },
+        nombre: { bsonType: "string" },
+        id_hospital: { bsonType: "string" }
+      }
+    }
+  }
+});
+```
+
+* Insertar datos a la colección visitas:
+```js
+db.visitas.insertMany([
+   {
+      "id_visita": "VIS001",
+      "id_paciente": "PAC001",
+      "id_hospital": "HOS001",
+      "id_area": "AREA001",
+      "id_personal": "PER002",
+      "fecha_visita": "2024-01-15",
+      "hora_visita": "08:30",
+      "motivo": "Dolor en el pecho",
+      "diagnostico": "Angina de pecho estable"
+    },
+    {
+      "id_visita": "VIS002",
+      "id_paciente": "PAC001",
+      "id_hospital": "HOS001",
+      "id_area": "AREA001",
+      "id_personal": "PER002",
+      "fecha_visita": "2024-02-20",
+      "hora_visita": "10:15",
+      "motivo": "Control cardiológico",
+      "diagnostico": "Evolución favorable"
+    },
+    {
+      "id_visita": "VIS003",
+      "id_paciente": "PAC001",
+      "id_hospital": "HOS001",
+      "id_area": "AREA001",
+      "id_personal": "PER002",
+      "fecha_visita": "2024-03-25",
+      "hora_visita": "14:00",
+      "motivo": "Control de medicación",
+      "diagnostico": "Respuesta adecuada al tratamiento"
+    },
+    {
+      "id_visita": "VIS004",
+      "id_paciente": "PAC002",
+      "id_hospital": "HOS001",
+      "id_area": "AREA002",
+      "id_personal": "PER003",
+      "fecha_visita": "2024-01-22",
+      "hora_visita": "09:00",
+      "motivo": "Cefalea persistente",
+      "diagnostico": "Migraña crónica"
+    },
+    {
+      "id_visita": "VIS005",
+      "id_paciente": "PAC002",
+      "id_hospital": "HOS001",
+      "id_area": "AREA002",
+      "id_personal": "PER003",
+      "fecha_visita": "2024-02-28",
+      "hora_visita": "11:30",
+      "motivo": "Control neurológico",
+      "diagnostico": "Mejoría parcial de síntomas"
+    },
+    {
+      "id_visita": "VIS006",
+      "id_paciente": "PAC003",
+      "id_hospital": "HOS001",
+      "id_area": "AREA006",
+      "id_personal": "PER004",
+      "fecha_visita": "2024-01-28",
+      "hora_visita": "15:45",
+      "motivo": "Control pediátrico",
+      "diagnostico": "Desarrollo normal"
+    },
+    {
+      "id_visita": "VIS007",
+      "id_paciente": "PAC003",
+      "id_hospital": "HOS001",
+      "id_area": "AREA006",
+      "id_personal": "PER004",
+      "fecha_visita": "2024-03-15",
+      "hora_visita": "16:20",
+      "motivo": "Vacunación",
+      "diagnostico": "Esquema de vacunación completo"
+    },  
+    
+    {
+      "id_visita": "VIS008",
+      "id_paciente": "PAC004",
+      "id_hospital": "HOS001",
+      "id_area": "AREA009",
+      "id_personal": "PER005",
+      "fecha_visita": "2024-02-05",
+      "hora_visita": "08:00",
+      "motivo": "Seguimiento oncológico",
+      "diagnostico": "Respuesta parcial al tratamiento"
+    },
+    {
+      "id_visita": "VIS009",
+      "id_paciente": "PAC004",
+      "id_hospital": "HOS001",
+      "id_area": "AREA009",
+      "id_personal": "PER005",
+      "fecha_visita": "2024-03-10",
+      "hora_visita": "09:30",
+      "motivo": "Control post-quimioterapia",
+      "diagnostico": "Tolerancia adecuada al tratamiento"
+    },
+    {
+      "id_visita": "VIS010",
+      "id_paciente": "PAC005",
+      "id_hospital": "HOS001",
+      "id_area": "AREA001",
+      "id_personal": "PER002",
+      "fecha_visita": "2024-01-18",
+      "hora_visita": "13:15",
+      "motivo": "Hipertensión arterial",
+      "diagnostico": "HTA grado II"
+    },
+    {
+      "id_visita": "VIS011",
+      "id_paciente": "PAC005",
+      "id_hospital": "HOS001",
+      "id_area": "AREA001",
+      "id_personal": "PER002",
+      "fecha_visita": "2024-02-22",
+      "hora_visita": "14:45",
+      "motivo": "Control de presión arterial",
+      "diagnostico": "Presión arterial controlada"
+    },
+    {
+      "id_visita": "VIS012",
+      "id_paciente": "PAC006",
+      "id_hospital": "HOS001",
+      "id_area": "AREA002",
+      "id_personal": "PER003",
+      "fecha_visita": "2024-02-12",
+      "hora_visita": "10:00",
+      "motivo": "Mareos frecuentes",
+      "diagnostico": "Vértigo posicional benigno"
+    },
+    {
+      "id_visita": "VIS013",
+      "id_paciente": "PAC007",
+      "id_hospital": "HOS001",
+      "id_area": "AREA003",
+      "id_personal": "PER003",
+      "fecha_visita": "2024-01-25",
+      "hora_visita": "11:30",
+      "motivo": "Dificultad respiratoria",
+      "diagnostico": "Asma bronquial"
+    },
+    {
+      "id_visita": "VIS014",
+      "id_paciente": "PAC008",
+      "id_hospital": "HOS001",
+      "id_area": "AREA004",
+      "id_personal": "PER002",
+      "fecha_visita": "2024-02-08",
+      "hora_visita": "15:00",
+      "motivo": "Dolor abdominal",
+      "diagnostico": "Gastritis crónica"
+    },
+    {
+      "id_visita": "VIS015",
+      "id_paciente": "PAC009",
+      "id_hospital": "HOS001",
+      "id_area": "AREA005",
+      "id_personal": "PER004",
+      "fecha_visita": "2024-01-30",
+      "hora_visita": "09:45",
+      "motivo": "Control diabético",
+      "diagnostico": "Diabetes mellitus tipo 2 controlada"
+    }
+]);
+```
+
+11. Creacion de la colección ("hitoria_tratamiento"):
+```js
+db.createCollection("historia_tratamiento", {
+  validator: {
+    $jsonSchema: {
+      bsonType: "object",
+      required: ["_id", "nombre", "id_hospital"],
+      properties: {
+        _id: { bsonType: "string" },
+        nombre: { bsonType: "string" },
+        id_hospital: { bsonType: "string" }
+      }
+    }
+  }
+});
+```
+
+* Insertar datos a la colección historia_tratamiento:
+```js
+db.historia_tratamiento.insertMany([
+    {
+      "id_historia": "HT001",
+      "id_paciente": "PAC001",
+      "id_tratamiento": "TRA001",
+      "fecha_inicio": "2024-01-15",
+      "fecha_fin": null,
+      "estado": "Activo",
+      "resultado": "En seguimiento"
+    },
+    {
+      "id_historia": "HT002",
+      "id_paciente": "PAC001",
+      "id_tratamiento": "TRA002",
+      "fecha_inicio": "2024-01-15",
+      "fecha_fin": "2024-01-15",
+      "estado": "Completado",
+      "resultado": "Normal"
+    },
+    {
+      "id_historia": "HT003",
+      "id_paciente": "PAC002",
+      "id_tratamiento": "TRA004",
+      "fecha_inicio": "2024-01-22",
+      "fecha_fin": null,
+      "estado": "Activo",
+      "resultado": "En tratamiento"
+    },
+    {
+      "id_historia": "HT004",
+      "id_paciente": "PAC002",
+      "id_tratamiento": "TRA005",
+      "fecha_inicio": "2024-02-01",
+      "fecha_fin": "2024-02-01",
+      "estado": "Completado",
+      "resultado": "Sin alteraciones significativas"
+    },
+    {
+      "id_historia": "HT005",
+      "id_paciente": "PAC003",
+      "id_tratamiento": "TRA013",
+      "fecha_inicio": "2024-01-28",
+      "fecha_fin": null,
+      "estado": "Activo",
+      "resultado": "Desarrollo adecuado"
+    },
+    {
+      "id_historia": "HT006",
+      "id_paciente": "PAC004",
+      "id_tratamiento": "TRA019",
+      "fecha_inicio": "2024-02-05",
+      "fecha_fin": null,
+      "estado": "Activo",
+      "resultado": "Respuesta parcial"
+    },
+    {
+      "id_historia": "HT007",
+      "id_paciente": "PAC005",
+      "id_tratamiento": "TRA001",
+      "fecha_inicio": "2024-01-18",
+      "fecha_fin": null,
+      "estado": "Activo",
+      "resultado": "Presión controlada"
+    }
+]);
+```
+
+12. Creacion de la colección ("medicamento_tratamiento"):
+```js
+db.createCollection("historia_tratamiento", {
+  validator: {
+    $jsonSchema: {
+      bsonType: "object",
+      required: ["_id", "nombre", "id_hospital"],
+      properties: {
+        _id: { bsonType: "string" },
+        nombre: { bsonType: "string" },
+        id_hospital: { bsonType: "string" }
+      }
+    }
+  }
+});
+```
+
+* Insertar datos a la colección medicamento_tratamiento:
+```js
+db.medicamento_tratamiento.insertMany([{
+      "id_medicamento_tratamiento": "MT001",
+      "id_medicamento": "MED001",
+      "id_tratamiento": "TRA001",
+      "dosis": "500mg cada 8 horas",
+      "frecuencia": "3 veces al día"
+    },
+    {
+      "id_medicamento_tratamiento": "MT002",
+      "id_medicamento": "MED004",
+      "id_tratamiento": "TRA001",
+      "dosis": "10mg cada 12 horas",
+      "frecuencia": "2 veces al día"
+    },
+    {
+      "id_medicamento_tratamiento": "MT003",
+      "id_medicamento": "MED005",
+      "id_tratamiento": "TRA004",
+      "dosis": "200mg cada 12 horas",
+      "frecuencia": "2 veces al día"
+    },
+    {
+      "id_medicamento_tratamiento": "MT004",
+      "id_medicamento": "MED002",
+      "id_tratamiento": "TRA013",
+      "dosis": "500mg cada 8 horas",
+      "frecuencia": "3 veces al día"
+    },
+    {
+      "id_medicamento_tratamiento": "MT005",
+      "id_medicamento": "MED006",
+      "id_tratamiento": "TRA009",
+      "dosis": "20mg en ayunas",
+      "frecuencia": "1 vez al día"
+    },
+    {
+      "id_medicamento_tratamiento": "MT006",
+      "id_medicamento": "MED007",
+      "id_tratamiento": "TRA011",
+      "dosis": "850mg con las comidas",
+      "frecuencia": "2 veces al día"
+    },
+    {
+      "id_medicamento_tratamiento": "MT007",
+      "id_medicamento": "MED008",
+      "id_tratamiento": "TRA007",
+      "dosis": "100mcg cada 6 horas",
+      "frecuencia": "4 veces al día"
+    },
+    {
+      "id_medicamento_tratamiento": "MT008",
+      "id_medicamento": "MED018",
+      "id_tratamiento": "TRA019",
+      "dosis": "50mg/m2 cada 21 días",
+      "frecuencia": "Ciclos de quimioterapia"
+    }
+]);
+```
+
+13. Creacion de la colección ("facturas"):
+```js
+db.createCollection("faturas", {
+  validator: {
+    $jsonSchema: {
+      bsonType: "object",
+      required: ["_id", "nombre", "id_hospital"],
+      properties: {
+        _id: { bsonType: "string" },
+        nombre: { bsonType: "string" },
+        id_hospital: { bsonType: "string" }
+      }
+    }
+  }
+});
+```
+
+* Insertar datos a la colección facturas:
+```js
+db.facturas.insertMany([{
+      "id_factura": "FAC001",
+      "id_paciente": "PAC001",
+      "fecha_emision": "2024-01-15",
+      "total": 230000
+    },
+    {
+      "id_factura": "FAC002",
+      "id_paciente": "PAC002",
+      "fecha_emision": "2024-01-22",
+      "total": 980000
+    },
+    {
+      "id_factura": "FAC003",
+      "id_paciente": "PAC003",
+      "fecha_emision": "2024-01-28",
+      "total": 170000
+    },
+    {
+      "id_factura": "FAC004",
+      "id_paciente": "PAC004",
+      "fecha_emision": "2024-02-05",
+      "total": 2500000
+    },
+    {
+      "id_factura": "FAC005",
+      "id_paciente": "PAC005",
+      "fecha_emision": "2024-01-18",
+      "total": 150000
+    },
+    {
+      "id_factura": "FAC006",
+      "id_paciente": "PAC006",
+      "fecha_emision": "2024-02-12",
+      "total": 180000
+    },
+    {
+      "id_factura": "FAC007",
+      "id_paciente": "PAC007",
+      "fecha_emision": "2024-01-25",
+      "total": 100000
+    },
+    {
+      "id_factura": "FAC008",
+      "id_paciente": "PAC008",
+      "fecha_emision": "2024-02-08",
+      "total": 300000
+    },
+    {
+      "id_factura": "FAC009",
+      "id_paciente": "PAC009",
+      "fecha_emision": "2024-01-30",
+      "total": 240000
+    }
+]);
+```
+
+14. Creacion de la colección ("datalle_factura"):
+```js
+db.createCollection("detalle_factura", {
+  validator: {
+    $jsonSchema: {
+      bsonType: "object",
+      required: ["_id", "nombre", "id_hospital"],
+      properties: {
+        _id: { bsonType: "string" },
+        nombre: { bsonType: "string" },
+        id_hospital: { bsonType: "string" }
+      }
+    }
+  }
+});
+```
+
+* Insertar datos a la colección detalle_factura:
+```js
+db.detalle_factura.insertMany([ {
+      "id_detalle": "DET001",
+      "id_factura": "FAC001",
+      "id_tratamiento": "TRA001",
+      "cantidad": 1,
+      "subtotal": 150000
+    },
+    {
+      "id_detalle": "DET002",
+      "id_factura": "FAC001",
+      "id_tratamiento": "TRA002",
+      "cantidad": 1,
+      "subtotal": 80000
+    },
+    {
+      "id_detalle": "DET003",
+      "id_factura": "FAC002",
+      "id_tratamiento": "TRA004",
+      "cantidad": 1,
+      "subtotal": 180000
+    },
+    {
+      "id_detalle": "DET004",
+      "id_factura": "FAC002",
+      "id_tratamiento": "TRA005",
+      "cantidad": 1,
+      "subtotal": 800000
+    },
+    {
+      "id_detalle": "DET005",
+      "id_factura": "FAC003",
+      "id_tratamiento": "TRA013",
+      "cantidad": 1,
+      "subtotal": 120000
+    },
+    {
+      "id_detalle": "DET006",
+      "id_factura": "FAC003",
+      "id_tratamiento": "TRA014",
+      "cantidad": 1,
+      "subtotal": 50000
+    },
+    {
+      "id_detalle": "DET007",
+      "id_factura": "FAC004",
+      "id_tratamiento": "TRA019",
+      "cantidad": 1,
+      "subtotal": 2500000
+    },
+    {
+      "id_detalle": "DET008",
+      "id_factura": "FAC005",
+      "id_tratamiento": "TRA001",
+      "cantidad": 1,
+      "subtotal": 150000
+    },
+    {
+      "id_detalle": "DET009",
+      "id_factura": "FAC006",
+      "id_tratamiento": "TRA004",
+      "cantidad": 1,
+      "subtotal": 180000
+    },
+    {
+      "id_detalle": "DET010",
+      "id_factura": "FAC007",
+      "id_tratamiento": "TRA007",
+      "cantidad": 1,
+      "subtotal": 100000
+    },
+    {
+      "id_detalle": "DET011",
+      "id_factura": "FAC008",
+      "id_tratamiento": "TRA009",
+      "cantidad": 1,
+      "subtotal": 300000
+    },
+    {
+      "id_detalle": "DET012",
+      "id_factura": "FAC009",
+      "id_tratamiento": "TRA011",
+      "cantidad": 1,
+      "subtotal": 160000
+    },
+    {
+      "id_detalle": "DET013",
+      "id_factura": "FAC009",
+      "id_tratamiento": "TRA012",
+      "cantidad": 1,
+      "subtotal": 80000
+    }
+]);
+```
