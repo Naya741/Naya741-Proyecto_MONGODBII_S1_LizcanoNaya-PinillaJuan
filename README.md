@@ -738,7 +738,7 @@ La primera forma normal, es el primer nivel de normalización en el diseño de l
 
 
 
-## Segunda Forma Normal (1FN) 
+## Segunda Forma Normal (2FN) 
 
 Una tabla está en 2FN si cumple con los siguientes criterios: 
 
