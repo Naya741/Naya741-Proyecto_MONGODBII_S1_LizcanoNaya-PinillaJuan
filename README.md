@@ -1078,6 +1078,152 @@ Se encuentra en 3FN, ya que rol, especialidad, correo, etc, no dependen entre si
 
 ## Gráfica
 
+```mermaid
+erDiagram
+    Paciente {
+        int id_paciente PK
+        string nombre
+        string documento
+        date fecha_nacimiento
+        string sexo
+        string correo
+        string telefono
+    }
+    
+    Factura {
+        int id_factura PK
+        int id_paciente FK
+        date fecha_emision
+        decimal total
+    }
+    
+    Detalle_factura {
+        int id_detalle PK
+        int id_factura FK
+        int id_tratamiento FK
+        int cantidad
+        decimal subtotal
+    }
+    
+    Historia_tratamiento {
+        int id_historia_tratamiento PK
+        int id_paciente FK
+        int id_tratamiento FK
+        date fecha_inicio
+        date fecha_fin
+    }
+    
+    Tratamiento {
+        int id_tratamiento PK
+        int id_visita FK
+        int id_area FK
+        string nombre
+        string descripcion
+        decimal costo
+    }
+    
+    Visita {
+        int id_visita PK
+        int id_paciente FK
+        int id_hospital FK
+        int id_area FK
+        date fecha_visita
+        string motivo
+        string diagnostico
+    }
+    
+    AreaMedica {
+        int id_area PK
+        string nombre
+        int id_hospital FK
+    }
+    
+    Hospital {
+        int id_hospital PK
+        string nombre
+        string ciudad
+        string direccion
+        int id_director FK
+    }
+    
+    Director {
+        int id_director PK
+        string nombre
+        string documento
+        string correo
+        string telefono
+    }
+    
+    Personal {
+        int id_personal PK
+        int id_hospital FK
+        string nombre
+        string documento
+    }
+    
+    Rol {
+        int id_rol PK
+        string nombre_rol
+    }
+    
+    Especialidad {
+        int id_especialidad PK
+        string nombre_especialidad
+        string correo
+        string telefono
+    }
+    
+    Medicamento {
+        int id_medicamento PK
+        int id_hospital FK
+        string nombre
+        string fabricante
+        int id_categoria FK
+        int stock_actual
+    }
+    
+    Categoria_Medicamento {
+        int id_categoria_medic PK
+        string nombre_categoria
+    }
+    
+    Medicamento_tratamiento {
+        int id_Medicamento_Tratamiento PK
+        int id_medicamento FK
+        int id_tratamiento FK
+        string dosis
+        string frecuencia
+    }
+
+    %% Relaciones
+    Paciente ||--o{ Factura : "tiene"
+    Paciente ||--o{ Historia_tratamiento : "posee"
+    Paciente ||--o{ Visita : "realiza"
+    
+    Factura ||--o{ Detalle_factura : "contiene"
+    Detalle_factura }o--|| Tratamiento : "incluye"
+    
+    Historia_tratamiento }o--|| Tratamiento : "registra"
+    
+    Visita }o--|| Hospital : "se_realiza_en"
+    Visita }o--|| AreaMedica : "corresponde_a"
+    Visita ||--o{ Tratamiento : "genera"
+    
+    AreaMedica }o--|| Hospital : "pertenece_a"
+    
+    Hospital }o--|| Director : "dirigido_por"
+    Hospital ||--o{ Personal : "emplea"
+    Hospital ||--o{ Medicamento : "almacena"
+    
+    Personal }o--|| Rol : "tiene_rol"
+    Personal }o--|| Especialidad : "tiene_especialidad"
+    
+    Medicamento }o--|| Categoria_Medicamento : "pertenece_a"
+    Medicamento ||--o{ Medicamento_tratamiento : "usado_en"
+    
+    Tratamiento ||--o{ Medicamento_tratamiento : "requiere"
+    ```
+´´´
 
 
 
