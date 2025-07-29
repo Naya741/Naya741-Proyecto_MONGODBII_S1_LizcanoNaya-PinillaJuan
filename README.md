@@ -1223,7 +1223,7 @@ erDiagram
     
     Tratamiento ||--o{ Medicamento_tratamiento : "requiere"
     ```
-´´´
+
 
 
 
