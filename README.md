@@ -870,12 +870,139 @@ La segunda forma normal, es el segundo nivel de normalización en el diseño de 
 
 ## Gráfica
 
+´´´mermaid
+   erDiagram
+    Paciente {
+        int id_paciente PK
+        string Nombre
+        string Documento
+        date Fecha_nacimiento
+        string Sexo
+        string Correo
+        string Telefono
+    }
+    
+    AreaMedica {
+        int id_area PK
+        string nombre
+        int id_hospital FK
+    }
+    
+    Visita {
+        int id_visita PK
+        int id_paciente FK
+        int id_hospital FK
+        int id_area FK
+        date fecha_visita
+        string Motivo
+        string Diagnostico
+    }
+    
+    Tratamiento {
+        int id_tratamiento PK
+        int id_visita FK
+        int id_area FK
+        string Nombre
+        string Descripcion
+        decimal Costo
+    }
+    
+    Director {
+        int id_director PK
+        string Nombre
+        string Documento
+        string Correo
+        string Telefono
+    }
+    
+    Hospital {
+        int id_hospital PK
+        string Nombre
+        string Ciudad
+        string Direccion
+        int id_director FK
+    }
+    
+    Medicamento {
+        int id_medicamento PK
+        int id_hospital FK
+        string Nombre
+        string Fabricante
+        int id_categoria FK
+        int stock_actual
+    }
+    
+    Rol {
+        int id_rol PK
+        string Nombre_rol
+    }
+    
+    Especialidad {
+        int id_especialidad PK
+        string Nombre_especialidad
+    }
+    
+    Personal {
+        int id_personal PK
+        int id_hospital FK
+        string Nombre
+        string Documento
+        int id_rol FK
+        int id_especialidad FK
+        string Correo
+        string Telefono
+    }
+    
+    Medicamento_tratamiento {
+        int id_Medicamento_Tratamiento PK
+        int id_medicamento FK
+        int id_tratamiento FK
+        string Dosis
+        string Frecuencia
+    }
+    
+    Factura {
+        int id_factura PK
+        int id_paciente FK
+        date fecha_emision
+        decimal Total
+    }
+    
+    Detalle_factura {
+        int id_detalle PK
+        int id_factura FK
+        int id_tratamiento FK
+        int Cantidad
+        decimal Subtotal
+    }
 
-
-
-
-
-
+    %% Relaciones principales
+    Paciente ||--o{ Visita : "realiza"
+    Paciente ||--o{ Factura : "genera"
+    
+    Hospital ||--o{ AreaMedica : "tiene"
+    Hospital ||--o{ Visita : "atiende"
+    Hospital ||--o{ Medicamento : "almacena"
+    Hospital ||--o{ Personal : "emplea"
+    
+    Director ||--|| Hospital : "dirige"
+    
+    AreaMedica ||--o{ Visita : "recibe"
+    AreaMedica ||--o{ Tratamiento : "ofrece"
+    
+    Visita ||--o{ Tratamiento : "incluye"
+    
+    Rol ||--o{ Personal : "asigna"
+    Especialidad ||--o{ Personal : "define"
+    
+    %% Relación muchos a muchos entre Medicamento y Tratamiento
+    Medicamento ||--o{ Medicamento_tratamiento : "incluye"
+    Tratamiento ||--o{ Medicamento_tratamiento : "requiere"
+    
+    %% Relaciones de facturación
+    Factura ||--o{ Detalle_factura : "contiene"
+    Tratamiento ||--o{ Detalle_factura : "factura"
+´´´
 
 ## Tercera Forma Normal (3FN) 
 Una tabla está en 3NF si cumple con los siguientes criterios: 
@@ -943,7 +1070,6 @@ Se encuentra en 3FN, ya que rol, especialidad, correo, etc, no dependen entre si
 14. Categoria_Medicamento:
 
 ❖ Se encuentra en 3FN, ya que no hay dependencias transitivas; el nombre de la categoría depende únicamente de la clave primaria.
-
 
 
 15. Historia_Tratamiento
