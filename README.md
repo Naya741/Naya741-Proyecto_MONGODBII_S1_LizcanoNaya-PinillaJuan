@@ -417,17 +417,17 @@ Las Entidades y Atributos
 
 ❖ id_hospital: INT NOT NULL FOREIGN KEY. 
 
-❖ nombre: VARCHAR(100) NOT NULL.
+❖ Nombre: VARCHAR(100) NOT NULL.
 
-❖ documento: VARCHAR(20)  UNIQUE NOT NULL.
+❖ Documento: VARCHAR(20)  UNIQUE NOT NULL.
 
-❖ rol: VARCHAR(100)  ENUM (‘Médico’, ‘Enfermero’, ‘Administrativo’, ‘Mantenimiento’) NOT NULL.
+❖ Rol: VARCHAR(100)  ENUM (‘Médico’, ‘Enfermero’, ‘Administrativo’, ‘Mantenimiento’) NOT NULL.
 
-❖ especialidad: VARCHAR(100) 
+❖ Especialidad: VARCHAR(100) 
 
-❖ correo: VARCHAR(100) 
+❖ Correo: VARCHAR(100) 
 
-❖ telefono: VARCHAR(20) 
+❖ Telefono: VARCHAR(20) 
 
 5. Paciente: 
 
