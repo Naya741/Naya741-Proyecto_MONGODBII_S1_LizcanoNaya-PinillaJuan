@@ -712,31 +712,98 @@ La primera forma normal, es el primer nivel de normalización en el diseño de l
 
 ## Gráfica
 
+´´´mermaid
+erDiagram
+    AreaMedica {
+        int id_area PK
+        string nombre
+        int id_hospital FK
+    }
+    
+    Director {
+        int id_director PK
+        string Nombre
+        string Documento
+        string Correo
+        string Telefono
+    }
+    
+    Hospital {
+        int id_hospital PK
+        string Nombre
+        string Ciudad
+        string Direccion
+        int id_director FK
+    }
+    
+    Personal {
+        int id_personal PK
+        int id_hospital FK
+        string Nombre
+        string Documento
+        int id_rol FK
+        string id_especialidad
+        string Correo
+        string Telefono
+    }
+    
+    Paciente {
+        int id_paciente PK
+        string Nombre
+        string Documento
+        date Fecha_nacimiento
+        string Sexo
+        string Correo
+        string Telefono
+    }
+    
+    Visita {
+        int id_visita PK
+        int id_paciente FK
+        int id_hospital FK
+        int id_area FK
+        date fecha_visita
+        string Motivo
+        string Diagnostico
+    }
+    
+    Medicamento {
+        int id_medicamento PK
+        int id_hospital FK
+        string Nombre
+        string Fabricante
+        int id_categoria FK
+        int stock_actual
+    }
+    
+    Tratamiento {
+        int id_tratamiento PK
+        int id_visita FK
+        int id_area FK
+        string Nombre
+        string Descripcion
+        decimal Costo
+    }
+    
+    Factura {
+        int id_factura PK
+        int id_paciente FK
+        date fecha_emision
+        decimal Total
+    }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    %% Relaciones
+    Hospital ||--o{ AreaMedica : "tiene"
+    Director ||--|| Hospital : "dirige"
+    Hospital ||--o{ Personal : "emplea"
+    Hospital ||--o{ Visita : "atiende"
+    Hospital ||--o{ Medicamento : "almacena"
+    Paciente ||--o{ Visita : "realiza"
+    Paciente ||--o{ Factura : "genera"
+    AreaMedica ||--o{ Visita : "recibe"
+    AreaMedica ||--o{ Tratamiento : "ofrece"
+    Visita ||--o{ Tratamiento : "incluye"
+´´´
 
 ## Segunda Forma Normal (2FN) 
 
