@@ -54,7 +54,7 @@ Visitas Médicas:
 Con base en la información anterior, se procederá a crear una base de datos en MONGODB y a la misma vez con funcionalidades de MYSQL esta para agrupar y relacionar los datos de los parques naturales ubicados en cada departamento, así como la información del personal y de los visitantes.
 
 ## Instalación General
-                  
+
 Los archivos relacionados con la BBDD del Ministerio del Medio Ambiente, se encuentran en la plataforma GitHub, estos archivos se encuentran en formato json y se dividen en 4 partes: 
 
 ❖ ddl.json : Creación de la base de datos con tablas y relaciones. 
@@ -368,7 +368,7 @@ graph TD
     Medicamento -->|se usa en| Tratamiento
     Tratamiento -->|se aplica en| Hospital
     Diagnostico -->|requiere| Tratamiento
-``` 
+```
 
 
 
@@ -712,98 +712,95 @@ La primera forma normal, es el primer nivel de normalización en el diseño de l
 
 ## Gráfica
 
-´´´mermaid
+```mermaid 
 erDiagram
-    AreaMedica {
-        int id_area PK
-        string nombre
-        int id_hospital FK
-    }
-    
-    Director {
-        int id_director PK
-        string Nombre
-        string Documento
-        string Correo
-        string Telefono
-    }
-    
-    Hospital {
-        int id_hospital PK
-        string Nombre
-        string Ciudad
-        string Direccion
-        int id_director FK
-    }
-    
-    Personal {
-        int id_personal PK
-        int id_hospital FK
-        string Nombre
-        string Documento
-        int id_rol FK
-        string id_especialidad
-        string Correo
-        string Telefono
-    }
-    
-    Paciente {
-        int id_paciente PK
-        string Nombre
-        string Documento
-        date Fecha_nacimiento
-        string Sexo
-        string Correo
-        string Telefono
-    }
-    
-    Visita {
-        int id_visita PK
-        int id_paciente FK
-        int id_hospital FK
-        int id_area FK
-        date fecha_visita
-        string Motivo
-        string Diagnostico
-    }
-    
-    Medicamento {
-        int id_medicamento PK
-        int id_hospital FK
-        string Nombre
-        string Fabricante
-        int id_categoria FK
-        int stock_actual
-    }
-    
-    Tratamiento {
-        int id_tratamiento PK
-        int id_visita FK
-        int id_area FK
-        string Nombre
-        string Descripcion
-        decimal Costo
-    }
-    
-    Factura {
-        int id_factura PK
-        int id_paciente FK
-        date fecha_emision
-        decimal Total
-    }
+AreaMedica {
+int id_area PK
+string nombre
+int id_hospital FK
+}
+Director {
+int id_director PK
+string Nombre
+string Documento
+string Correo
+string Telefono
+}
 
-    %% Relaciones
-    Hospital ||--o{ AreaMedica : "tiene"
-    Director ||--|| Hospital : "dirige"
-    Hospital ||--o{ Personal : "emplea"
-    Hospital ||--o{ Visita : "atiende"
-    Hospital ||--o{ Medicamento : "almacena"
-    Paciente ||--o{ Visita : "realiza"
-    Paciente ||--o{ Factura : "genera"
-    AreaMedica ||--o{ Visita : "recibe"
-    AreaMedica ||--o{ Tratamiento : "ofrece"
-    Visita ||--o{ Tratamiento : "incluye"
-´´´
+Hospital {
+int id_hospital PK
+string Nombre
+string Ciudad
+string Direccion
+int id_director FK
+}
+
+Personal {
+int id_personal PK
+int id_hospital FK
+string Nombre
+string Documento
+int id_rol FK
+string id_especialidad
+string Correo
+string Telefono
+}
+
+Paciente {
+int id_paciente PK
+string Nombre
+string Documento
+date Fecha_nacimiento
+string Sexo
+string Correo
+string Telefono
+}
+
+Visita {
+int id_visita PK
+int id_paciente FK
+int id_hospital FK
+int id_area FK
+date fecha_visita
+string Motivo
+string Diagnostico
+}
+
+Medicamento {
+int id_medicamento PK
+int id_hospital FK
+string Nombre
+string Fabricante
+int id_categoria FK
+int stock_actual
+}
+
+Tratamiento {
+int id_tratamiento PK
+int id_visita FK
+int id_area FK
+string Nombre
+string Descripcion
+decimal Costo
+}
+
+Factura {
+int id_factura PK
+int id_paciente FK
+date fecha_emision
+decimal Total}
+
+Hospital ||--o{ AreaMedica : "tiene"
+Director ||--|| Hospital : "dirige"
+Hospital ||--o{ Personal : "emplea"
+Hospital ||--o{ Visita : "atiende"
+Hospital ||--o{ Medicamento : "almacena"
+Paciente ||--o{ Visita : "realiza"
+Paciente ||--o{ Factura : "genera"
+AreaMedica ||--o{ Visita : "recibe"
+AreaMedica ||--o{ Tratamiento : "ofrece"
+Visita ||--o{ Tratamiento : "incluye"
+```
 
 ## Segunda Forma Normal (2FN) 
 
@@ -870,9 +867,11 @@ La segunda forma normal, es el segundo nivel de normalización en el diseño de 
 
 ## Gráfica
 
-´´´mermaid
-   erDiagram
-    Paciente {
+
+
+```mermaid
+erDiagram
+Paciente {
         int id_paciente PK
         string Nombre
         string Documento
@@ -882,126 +881,127 @@ La segunda forma normal, es el segundo nivel de normalización en el diseño de 
         string Telefono
     }
     
-    AreaMedica {
-        int id_area PK
-        string nombre
-        int id_hospital FK
-    }
-    
-    Visita {
-        int id_visita PK
-        int id_paciente FK
-        int id_hospital FK
-        int id_area FK
-        date fecha_visita
-        string Motivo
-        string Diagnostico
-    }
-    
-    Tratamiento {
-        int id_tratamiento PK
-        int id_visita FK
-        int id_area FK
-        string Nombre
-        string Descripcion
-        decimal Costo
-    }
-    
-    Director {
-        int id_director PK
-        string Nombre
-        string Documento
-        string Correo
-        string Telefono
-    }
-    
-    Hospital {
-        int id_hospital PK
-        string Nombre
-        string Ciudad
-        string Direccion
-        int id_director FK
-    }
-    
-    Medicamento {
-        int id_medicamento PK
-        int id_hospital FK
-        string Nombre
-        string Fabricante
-        int id_categoria FK
-        int stock_actual
-    }
-    
-    Rol {
-        int id_rol PK
-        string Nombre_rol
-    }
-    
-    Especialidad {
-        int id_especialidad PK
-        string Nombre_especialidad
-    }
-    
-    Personal {
-        int id_personal PK
-        int id_hospital FK
-        string Nombre
-        string Documento
-        int id_rol FK
-        int id_especialidad FK
-        string Correo
-        string Telefono
-    }
-    
-    Medicamento_tratamiento {
-        int id_Medicamento_Tratamiento PK
-        int id_medicamento FK
-        int id_tratamiento FK
-        string Dosis
-        string Frecuencia
-    }
-    
-    Factura {
-        int id_factura PK
-        int id_paciente FK
-        date fecha_emision
-        decimal Total
-    }
-    
-    Detalle_factura {
-        int id_detalle PK
-        int id_factura FK
-        int id_tratamiento FK
-        int Cantidad
-        decimal Subtotal
-    }
+AreaMedica {
+    int id_area PK
+    string nombre
+    int id_hospital FK
+}
 
-    %% Relaciones principales
-    Paciente ||--o{ Visita : "realiza"
-    Paciente ||--o{ Factura : "genera"
-    
-    Hospital ||--o{ AreaMedica : "tiene"
-    Hospital ||--o{ Visita : "atiende"
-    Hospital ||--o{ Medicamento : "almacena"
-    Hospital ||--o{ Personal : "emplea"
-    
-    Director ||--|| Hospital : "dirige"
-    
-    AreaMedica ||--o{ Visita : "recibe"
-    AreaMedica ||--o{ Tratamiento : "ofrece"
-    
-    Visita ||--o{ Tratamiento : "incluye"
-    
-    Rol ||--o{ Personal : "asigna"
-    Especialidad ||--o{ Personal : "define"
-    
-    %% Relación muchos a muchos entre Medicamento y Tratamiento
-    Medicamento ||--o{ Medicamento_tratamiento : "incluye"
-    Tratamiento ||--o{ Medicamento_tratamiento : "requiere"
-    
-    %% Relaciones de facturación
-    Factura ||--o{ Detalle_factura : "contiene"
-    Tratamiento ||--o{ Detalle_factura : "factura"
+Visita {
+    int id_visita PK
+    int id_paciente FK
+    int id_hospital FK
+    int id_area FK
+    date fecha_visita
+    string Motivo
+    string Diagnostico
+}
+
+Tratamiento {
+    int id_tratamiento PK
+    int id_visita FK
+    int id_area FK
+    string Nombre
+    string Descripcion
+    decimal Costo
+}
+
+Director {
+    int id_director PK
+    string Nombre
+    string Documento
+    string Correo
+    string Telefono
+}
+
+Hospital {
+    int id_hospital PK
+    string Nombre
+    string Ciudad
+    string Direccion
+    int id_director FK
+}
+
+Medicamento {
+    int id_medicamento PK
+    int id_hospital FK
+    string Nombre
+    string Fabricante
+    int id_categoria FK
+    int stock_actual
+}
+
+Rol {
+    int id_rol PK
+    string Nombre_rol
+}
+
+Especialidad {
+    int id_especialidad PK
+    string Nombre_especialidad
+}
+
+Personal {
+    int id_personal PK
+    int id_hospital FK
+    string Nombre
+    string Documento
+    int id_rol FK
+    int id_especialidad FK
+    string Correo
+    string Telefono
+}
+
+Medicamento_tratamiento {
+    int id_Medicamento_Tratamiento PK
+    int id_medicamento FK
+    int id_tratamiento FK
+    string Dosis
+    string Frecuencia
+}
+
+Factura {
+    int id_factura PK
+    int id_paciente FK
+    date fecha_emision
+    decimal Total
+}
+
+Detalle_factura {
+    int id_detalle PK
+    int id_factura FK
+    int id_tratamiento FK
+    int Cantidad
+    decimal Subtotal
+}
+
+%% Relaciones principales
+Paciente ||--o{ Visita : "realiza"
+Paciente ||--o{ Factura : "genera"
+
+Hospital ||--o{ AreaMedica : "tiene"
+Hospital ||--o{ Visita : "atiende"
+Hospital ||--o{ Medicamento : "almacena"
+Hospital ||--o{ Personal : "emplea"
+
+Director ||--|| Hospital : "dirige"
+
+AreaMedica ||--o{ Visita : "recibe"
+AreaMedica ||--o{ Tratamiento : "ofrece"
+
+Visita ||--o{ Tratamiento : "incluye"
+
+Rol ||--o{ Personal : "asigna"
+Especialidad ||--o{ Personal : "define"
+
+%% Relación muchos a muchos entre Medicamento y Tratamiento
+Medicamento ||--o{ Medicamento_tratamiento : "incluye"
+Tratamiento ||--o{ Medicamento_tratamiento : "requiere"
+
+%% Relaciones de facturación
+Factura ||--o{ Detalle_factura : "contiene"
+Tratamiento ||--o{ Detalle_factura : "factura"
+```
 ´´´
 
 ## Tercera Forma Normal (3FN) 
@@ -1077,7 +1077,6 @@ Se encuentra en 3FN, ya que rol, especialidad, correo, etc, no dependen entre si
 ❖ Se encuentra en 3FN, ya que no hay dependencias transitivas; las fechas y el estado dependen únicamente de la clave primaria y están normalizadas respecto al tratamiento.
 
 ## Gráfica
-
 
 
 
