@@ -1,7 +1,7 @@
-Sistema Hospitalario MongoDB 🏥
+## Sistema Hospitalario MongoDB 🏥
 
 
-                      Introducción 
+## Introducción 
 Este documento servirá como una guía detallada del proceso completo de diseño, estructuración e implementación de un sistema de base de datos que permita gestionar de manera eficiente todas las operaciones relacionadas con la administración de un sistema hospitalario . El objetivo principal es gestionar eficazmente la gestión de los hospitales, pacientes, médicos, tratamientos, medicamentos, visitas médicas, historiales clínicos, áreas especializadas y personal administrativo.
 Inicialmente, se analizará el caso de estudio junto con sus requerimientos específicos. A partir de esta investigación, se procederá a desarrollar un modelo conceptual detallado donde se identificarán las entidades principales, sus atributos y las relaciones entre ellas. Este paso determina las bases para comprender la estructura esencial de la gestión de los hospitales de Bucaramanga.
 Después de realizar el modelo conceptual, se realizará la conversión de este modelo dicho al modelo lógico. El modelo lógico  ofrece una representación más precisa de cómo se organizará la información, facilitando una comprensión clara de la base de datos en desarrollo. Se aplicará el proceso de Normalización hasta la tercera forma normal (3FN) para optimizar la organización de los datos, reduciendo redundancias y eliminando dependencias transitivas. 
@@ -10,7 +10,7 @@ Para mejorar la comprensión del sistema, se incluirá un diagrama UML que visua
 Finalmente, se detallarán algunos procedimientos, funciones, consultas, funciones y acceso total, la funcionalidad del sistema de información desarrollado, asegurando así su eficiencia y utilidad para la unidad de sistema hospitalario. 
 Con estos pasos y elementos, se garantiza una guía completa y efectiva para el diseño y desarrollo de la base de datos necesaria para la gestión eficiente de los hospitales de Bucaramanga y su área metropolitana.
 
-                   Caso de Estudio 
+## Caso de Estudio 
 El sistema hospitalario de Bucaramanga nos ha pedido crear un diseño inicial de un Software que permita manejar los datos e información que se generan sobre los hospitales de Bucaramanga gestionados por cada municipio, por lo que comenzamos estructurando los requerimientos dados: 
 Estructura del sistema
 Un hospital puede tener múltiples áreas especializadas como: Cardiología, Neurología y más especialidades. 
@@ -53,7 +53,7 @@ Visitas Médicas:
 
 Con base en la información anterior, se procederá a crear una base de datos en MONGODB y a la misma vez con funcionalidades de MYSQL esta para agrupar y relacionar los datos de los parques naturales ubicados en cada departamento, así como la información del personal y de los visitantes.
 
-                  Instalación General
+## Instalación General
                   
 Los archivos relacionados con la BBDD del Ministerio del Medio Ambiente, se encuentran en la plataforma GitHub, estos archivos se encuentran en formato json y se dividen en 4 partes: 
 
@@ -65,7 +65,7 @@ Los archivos relacionados con la BBDD del Ministerio del Medio Ambiente, se encu
 
  ❖ dql funciones.json: Aquí  se gestionan las funciones en JavaScript simuladas para implementarlas como consultas reutilizables en MONGODB, se consulta cálculo de inventarios, generación de reportes de visitas médicas y obtención de estadísticas de tratamientos realizados . 
 
-                     Planificación 
+## Planificación 
 Ejecución:
 
 Una vez se analizó la información requerida por el sistema hospitalario de Bucaramanga, se inició la creación del modelo conceptual. Este modelo proporciona una descripción de alto nivel de las necesidades de información que están detrás del diseño de una base de datos. Representa los conceptos principales de la base de datos y las relaciones entre ellos. 
@@ -73,7 +73,7 @@ Construcción del Modelo Conceptual
 Se diseñó el modelo conceptual identificando cada una de las entidades, sus atributos y las relaciones entre ellas. Este modelo conceptual proporciona una visión clara y estructurada de cómo se organizan y conectan los diferentes elementos de la base de datos. 
 A continuación veremos cada una de las entidades y atributos por todos los hospitales:
 
-Descripción 
+## Descripción 
 
 Las Entidades y Atributos 
 1. Hospital:
@@ -192,7 +192,7 @@ Cardiología, Neurología etc.
 
 ❖ Frecuencia: frecuencia de la dosis de medicamento. 
 
-               Relaciones y Cardinalidades 
+## Relaciones y Cardinalidades 
 Se realizó las relaciones y cardinalidades respectivas del modelo conceptual con sus entidades para tener mejor visualización de la base de datos: 
 1. Director - Hospital: 
 
@@ -258,7 +258,7 @@ Se implementa mediante la entidad intermedia “Medicamento_Tratamiento”
 ❖ Relación: “Corresponde”, Un miembro de personal puede estar asociado a un único rol específico(médico, enfermero, administrativo, mantenimiento), y cada rol específico corresponde a un personal.
 
 ❖ Cardinalidad: 1-1 (uno a uno). 
-Grafica:
+## Grafica:
 
 ```mermaid 
 graph TD
@@ -372,10 +372,10 @@ graph TD
 
 
 
-Construcción del Modelo Lógico 
+## Construcción del Modelo Lógico 
 Se ha diseñado el modelo lógico teniendo en cuenta el modelo conceptual, incorporando detalles más específicos como las características de cada atributo, incluidas las claves primarias, foráneas y las relaciones de cardinalidad. 
 
-Descripción 
+## Descripción 
 
 Las Entidades y Atributos 
 1. Hospital :
@@ -503,7 +503,7 @@ Las Entidades y Atributos
 
 ❖ marca_vehiculo: VARCHAR(50) NOT NULL. 
 
-              Relaciones y Cardinalidades 
+## Relaciones y Cardinalidades 
 Se realizó las relaciones y cardinalidades respectivas del modelo lógico con sus entidades para tener mejor visualización de la base de datos: 
 1. Director- Hospital: 
 
@@ -566,7 +566,7 @@ Se realizó las relaciones y cardinalidades respectivas del modelo lógico con s
 
 ❖ Entidad intermedia: medicamento_tratamiento.
 
-Gráfica
+## Gráfica
 
 ```mermaid     
 erDiagram
@@ -653,9 +653,240 @@ erDiagram
     VISITA ||--o{ TRATAMIENTO : "genera"
 ```
 
-Modelo lógico:
+## Normalización del Modelo Lógico 
 
-modelo
+Se realizó el proceso de la normalización de las tablas anteriormente visualizadas para organizar los datos de manera más eficiente,minimizando redundancias y dependencias transitivas en la base de datos en desarrollo. 
+
+## Primera Forma Normal (1FN) 
+
+Una tabla está en 1FN si cumple con los siguientes criterios: 
+
+❖ Todos los atributos contienen valores atómicos (indivisibles). 
+
+❖ No debe haber grupos repetitivos de columnas.
+
+❖ Cada columna debe contener un solo valor en cada fila. 
+
+## Descripción 
+La primera forma normal, es el primer nivel de normalización en el diseño de la base de datos que se aplicará a las tablas de la base de datos para garantizar la organización de los datos de manera que evite redundancias y asegure la consistencia de la información. 
+
+## Descripción Técnica 
+
+1. Hospital : 
+
+❖ Se encuentra en 1FN, ya que cuenta con una clave primaria única y cada columna tiene valores atómicos.
+
+2. Director : 
+
+❖ Se encuentra en 1FN, cumple con unicidad en su clave primaria y los atrbutosno son multivaluados.
+
+3. Area_medica : 
+
+❖ Se encuentra en 1FN,todos los valores son indivisibles. 
+
+4. Personal: 
+
+❖ Se encuentra en 1FN, sus atributos son únicos por fila y no hay columnas multivaluadas. 
+
+5. Paciente:
+
+❖ Se encuentra en 1FN, los datos principales están bien estructuradas. 
+
+6. Visita: 
+
+❖ Se encuentra en 1FN, cada visita representa un evento único y los campos son atómicos. 
+
+7. Tratamiento: 
+
+❖ Se encuentra en 1FN, todos los valores son unicos por fila.
+
+8. Medicamento: 
+❖ Se encuentra en 1FN, sin atributos repetitivos o compuestos.
+
+9. Medicamento_tratamiento: 
+
+❖ Se encuentra en 1FN, representa una relacion M:N, bien estructurada con claves compuestas. 
+
+9. Factura: 
+❖ Se encuentra en 1FN, ya que cada factura tiene una clave primaria única (id_factura) y los atributos son atómicos, sin grupos repetitivos.
+
+## Gráfica
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+## Segunda Forma Normal (1FN) 
+
+Una tabla está en 2FN si cumple con los siguientes criterios: 
+
+❖ Está en 1FN. 
+
+❖ Todos los atributos no clave (no pertenecientes a una clave primaria compuesta) dependen completamente de la clave primaria. 
+## Descripción 
+La segunda forma normal, es el segundo nivel de normalización en el diseño de la base de datos que se aplicará a las tablas de una base de datos que ya cumplen con la primera forma normal y lleva a cabo la eliminación de dependencias parciales dentro de una tabla. 
+
+## Descripción Técnica 
+
+1. Hospital :
+
+❖ Esta en 2FN ya que todos los atributos dependen únicamente del id_hospital. 
+
+2. Director: 
+
+❖ Se encuentra en 2FN, sin claves compuestas ni dependencias parciales. 
+
+3. Area_medica : 
+
+❖ Se encuentra en 2FN, ya que depende totalmente de id_area. 
+4. Personal: 
+
+❖ Se encuentra en 2FN, atributos como nombre, documento y rol dependen totalmente de id_personal. 
+
+5. Paciente : 
+
+❖ Se encuentra en 2FN, ya que cada columna depende completamente de su clave primaria. 
+
+6. Visita : 
+
+❖ Se encuentra en 2FN, ya que el diagnóstico, fecha y visita dependen de id_visita. 
+
+7. Tratamiento :  
+
+❖ Se encuentra en 2FN, ya que nombre, descripción, costo dependen totalmente de la clave id_tratamiento . 
+
+8. : Medicamento:
+
+❖ Se encuentra en 2FN, los atributos son función directa de la clave primaria. 
+
+9. Medicamento_tratamiento : 
+
+❖ Se encuentra en 2FN, ya que cada columna depende de la combinacion 
+
+10. Factura: 
+
+❖ Se encuentra en 2FN, ya que cada atributo (fecha_emision, total) depende completamente de la clave primaria y no existen claves compuestas.
+
+11. Detalle_Factura:
+
+❖ Se encuentra en 2FN, ya que los atributos no clave (cantidad, subtotal) dependen por completo de la clave primaria (id_detalle).
+
+12. Rol:
+
+❖ Se encuentra en 2FN, ya que el atributo nombre_rol depende totalmente de la clave primaria.
+
+13. Especialidad:
+
+❖ Se encuentra en 2FN, ya que el atributo nombre_especialidad depende solo de la clave primaria.
+
+## Gráfica
+
+
+
+
+
+
+
+
+## Tercera Forma Normal (3FN) 
+Una tabla está en 3NF si cumple con los siguientes criterios: 
+
+❖ Está en 2NF. 
+
+❖ No hay dependencias transitivas: ningún atributo no clave depende de otro atributo no clave. 
+
+## Descripción 
+La tercera forma normal, es el tercer nivel de normalización en el diseño de la base de datos que se aplicará a las tablas de una base de datos que ya cumplen con la segunda forma normal y se enfoca en la eliminación de dependencias transitivas, evitando que un atributo no clave dependa de otro no clave.
+
+## Descripción Técnica 
+1. Hospital: 
+
+❖ Se encuentra en 3FN, ya que no existen dependencias con atributos no clave.. 
+
+2. Director: 
+
+❖ Se encuentra en 3FN, ya que los datos de contacto no dependen entre si.
+
+3. Area_medica : 
+
+❖ Se encuentra en 3FN, ya que no tiene transacciones entre atributos no clave. 
+
+4. Personal : 
+
+Se encuentra en 3FN, ya que rol, especialidad, correo, etc, no dependen entre si. 
+
+5. Paciente : 
+
+❖ Se encuentra en 3FN, no hay relaciones transitivas entre los atributos de la tabla. 
+
+6. Visita: 
+
+❖ Se encuentra en 3FN, motivo y diagnostico dependen solo de la visita, no de paciente o hospital . 
+
+7. Tratamiento: 
+
+❖ Se encuentra en 3FN, ya que no hay atributos no clave relacionados entre si. 
+
+8. Medicamento : 
+
+❖ Se encuentra en 3FN, ya  que todos los campos son dependientes directos de la clave.
+
+9. Medicamento_tratamiento : 
+
+❖ Se encuentra en 3FN, ya que la dosis y frecuencia dependen de la clave compuesta. 
+
+10. Factura:
+❖ Se encuentra en 3FN, ya que no hay dependencias transitivas entre atributos; el total y la fecha dependen solo de la clave primaria.
+
+11. Detalle_Factura:
+
+❖ Se encuentra en 3FN, ya que no existen dependencias transitivas; la relación con Factura y Tratamiento está normalizada mediante claves foráneas.
+
+
+12. Rol:
+
+❖ Se encuentra en 3FN, ya que no existen dependencias transitivas; todos los atributos dependen únicamente de id_especialidad.
+
+13. Especialidad:
+
+❖ Se encuentra en 3FN, ya que la dosis y frecuencia dependen de la clave compuesta. 
+
+14. Categoria_Medicamento:
+
+❖ Se encuentra en 3FN, ya que no hay dependencias transitivas; el nombre de la categoría depende únicamente de la clave primaria.
+
+
+
+15. Historia_Tratamiento
+
+❖ Se encuentra en 3FN, ya que no hay dependencias transitivas; las fechas y el estado dependen únicamente de la clave primaria y están normalizadas respecto al tratamiento.
+
+## Gráfica
+
+
+
 
 
 
