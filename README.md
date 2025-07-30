@@ -3257,3 +3257,1182 @@ db.detalle_factura.insertMany([ {
     }
 ]);
 ```
+## Consultas MongoDB
+Se implementaron 100 consultas MongoDB enfocadas en:
+
+* Estado actual de hospitales: cantidad de médicos, enfermeras y áreas especializadas por hospital.
+
+* Inventarios de medicamentos por tipo y disponibilidad.
+
+* Historiales clínicos de pacientes por diagnóstico y tratamientos realizados.
+
+* Actividades del personal según área médica y rol.
+Gestión de visitas médicas y estadísticas de enfermedades comunes.
+
+Se incluyeron almenos 20 consultas de agregaciones avanzadas como :($lookup, $unwind, $group, $project, $regex).
+
+# Consulta 1: Contar total de hospitales:
+
+```js
+db.hospitales.countDocuments()
+```
+
+# Consulta 2: Listar todos los hospitales con sus directores
+
+```js
+db.hospitales.find()
+```
+
+# Consulta 3: Hospitales por ciudad
+```js
+db.hospitales.aggregate([
+  { $group: { _id: "$ciudad", total: { $sum: 1 } } }
+])
+```
+# Consulta 4: Hospitales con información completa del director
+```js
+db.hospitales.aggregate([
+  {
+    $lookup: {
+      from: "directores",
+      localField: "id_director",
+      foreignField: "id_director",
+      as: "director_info"
+    }
+  },
+  { $unwind: "$director_info" },
+  {
+    $project: {
+      nombre: 1,
+      ciudad: 1,
+      direccion: 1,
+      "director_info.nombre": 1,
+      "director_info.correo": 1,
+      "director_info.telefono": 1
+    }
+  }
+])
+```
+# Consulta 5: Cantidad de médicos por hospital
+```js
+db.personal.aggregate([
+  { $match: { id_rol: "002" } },
+  {
+    $lookup: {
+      from: "hospitales",
+      localField: "id_hospital",
+      foreignField: "id_hospital",
+      as: "hospital_info"
+    }
+  },
+  { $unwind: "$hospital_info" },
+  {
+    $group: {
+      _id: "$id_hospital",
+      hospital_nombre: { $first: "$hospital_info.nombre" },
+      total_medicos: { $sum: 1 }
+    }
+  },
+  { $sort: { total_medicos: -1 } }
+])
+```
+
+# Consulta 6: Cantidad de enfermeras por hospital
+```js
+db.personal.aggregate([
+  { $match: { id_rol: "003" } },
+  {
+    $lookup: {
+      from: "hospitales",
+      localField: "id_hospital",
+      foreignField: "id_hospital",
+      as: "hospital_info"
+    }
+  },
+  { $unwind: "$hospital_info" },
+  {
+    $group: {
+      _id: "$id_hospital",
+      hospital_nombre: { $first: "$hospital_info.nombre" },
+      total_enfermeras: { $sum: 1 }
+    }
+  }
+])
+```
+
+# Consulta 7:  Áreas médicas por hospital con conteo
+```js
+db.areas_medicas.aggregate([
+  {
+    $lookup: {
+      from: "hospitales",
+      localField: "id_hospital",
+      foreignField: "id_hospital",
+      as: "hospital_info"
+    }
+  },
+  { $unwind: "$hospital_info" },
+  {
+    $group: {
+      _id: "$id_hospital",
+      hospital_nombre: { $first: "$hospital_info.nombre" },
+      total_areas: { $sum: 1 },
+      areas: { $push: "$nombre" }
+    }
+  }
+])
+```
+# Consulta 8: Personal total por hospital
+```js
+db.personal.aggregate([
+  {
+    $group: {
+      _id: "$id_hospital",
+      total_personal: { $sum: 1 }
+    }
+  }
+])
+```
+
+# Consulta 9:  Distribución de personal por rol en cada hospital
+```js
+db.personal.aggregate([
+  {
+    $lookup: {
+      from: "roles",
+      localField: "id_rol",
+      foreignField: "id_rol",
+      as: "rol_info"
+    }
+  },
+  { $unwind: "$rol_info" },
+  {
+    $lookup: {
+      from: "hospitales",
+      localField: "id_hospital",
+      foreignField: "id_hospital",
+      as: "hospital_info"
+    }
+  },
+  { $unwind: "$hospital_info" },
+  {
+    $group: {
+      _id: {
+        hospital: "$id_hospital",
+        rol: "$id_rol"
+      },
+      hospital_nombre: { $first: "$hospital_info.nombre" },
+      rol_nombre: { $first: "$rol_info.nombre_rol" },
+      cantidad: { $sum: 1 }
+    }
+  }
+])
+```
+
+# Consulta 10: Hospital con más personal
+```js
+db.personal.aggregate([
+  {
+    $group: {
+      _id: "$id_hospital",
+      total: { $sum: 1 }
+    }
+  },
+  { $sort: { total: -1 } },
+  { $limit: 1 }
+])
+```
+# Consulta 11: Promedio salarial por hospital
+```js
+db.personal.aggregate([
+  {
+    $lookup: {
+      from: "hospitales",
+      localField: "id_hospital",
+      foreignField: "id_hospital",
+      as: "hospital_info"
+    }
+  },
+  { $unwind: "$hospital_info" },
+  {
+    $group: {
+      _id: "$id_hospital",
+      hospital_nombre: { $first: "$hospital_info.nombre" },
+      promedio_salarial: { $avg: "$salario" },
+      total_nomina: { $sum: "$salario" }
+    }
+  }
+])
+```
+
+# Consulta 12:Hospitales en Bucaramanga
+```js
+db.hospitales.find({ ciudad: "Bucaramanga" })
+```
+
+# Consulta 13:Hospitales en Bucaramanga
+```js
+db.personal.aggregate([
+  { $match: { id_especialidad: { $ne: null } } },
+  {
+    $lookup: {
+      from: "especialidades",
+      localField: "id_especialidad",
+      foreignField: "id_especialidad",
+      as: "especialidad_info"
+    }
+  },
+  { $unwind: "$especialidad_info" },
+  {
+    $lookup: {
+      from: "hospitales",
+      localField: "id_hospital",
+      foreignField: "id_hospital",
+      as: "hospital_info"
+    }
+  },
+  { $unwind: "$hospital_info" },
+  {
+    $group: {
+      _id: "$id_hospital",
+      hospital_nombre: { $first: "$hospital_info.nombre" },
+      especialidades: { $addToSet: "$especialidad_info.nombre_especialidad" }
+    }
+  }
+])
+```
+
+# Consulta 14:Hospitales en Bucaramanga
+```js
+db.hospitales.aggregate([
+  {
+    $group: {
+      _id: "$id_director",
+      total_hospitales: { $sum: 1 }
+    }
+  },
+  { $sort: { total_hospitales: -1 } }
+])
+
+```
+
+# Consulta 15: Resumen completo por hospital
+```js
+db.hospitales.aggregate([
+  {
+    $lookup: {
+      from: "personal",
+      localField: "id_hospital",
+      foreignField: "id_hospital",
+      as: "personal"
+    }
+  },
+  {
+    $lookup: {
+      from: "areas_medicas",
+      localField: "id_hospital",
+      foreignField: "id_hospital",
+      as: "areas"
+    }
+  },
+  {
+    $lookup: {
+      from: "directores",
+      localField: "id_director",
+      foreignField: "id_director",
+      as: "director"
+    }
+  },
+  { $unwind: "$director" },
+  {
+    $project: {
+      nombre: 1,
+      ciudad: 1,
+      direccion: 1,
+      director_nombre: "$director.nombre",
+      total_personal: { $size: "$personal" },
+      total_areas: { $size: "$areas" },
+      medicos: {
+        $size: {
+          $filter: {
+            input: "$personal",
+            cond: { $eq: ["$$this.id_rol", "002"] }
+          }
+        }
+      },
+      enfermeras: {
+        $size: {
+          $filter: {
+            input: "$personal",
+            cond: { $eq: ["$$this.id_rol", "003"] }
+          }
+        }
+      }
+    }
+  }
+])
+```
+
+# Consulta 16:Contar hospitales
+```js
+db.hospitales.aggregate([
+  {
+    $lookup: {
+      from: "personal",
+      localField: "id_hospital",
+      foreignField: "id_hospital",
+      as: "personal"
+    }
+  },
+  {
+    $lookup: {
+      from: "areas_medicas",
+      localField: "id_hospital",
+      foreignField: "id_hospital",
+      as: "areas"
+    }
+  },
+  {
+    $lookup: {
+      from: "directores",
+      localField: "id_director",
+      foreignField: "id_director",
+      as: "director"
+    }
+  },
+  { $unwind: "$director" },
+  {
+    $project: {
+      nombre: 1,
+      ciudad: 1,
+      direccion: 1,
+      director_nombre: "$director.nombre",
+      total_personal: { $size: "$personal" },
+      total_areas: { $size: "$areas" },
+      medicos: {
+        $size: {
+          $filter: {
+            input: "$personal",
+            cond: { $eq: ["$$this.id_rol", "002"] }
+          }
+        }
+      },
+      enfermeras: {
+        $size: {
+          $filter: {
+            input: "$personal",
+            cond: { $eq: ["$$this.id_rol", "003"] }
+          }
+        }
+      }
+    }
+  }
+])
+```
+
+# Consulta 17:Áreas médicas de un hospital específico 
+```js
+db.areas_medicas.find({ id_hospital: "HOS001" })
+```
+
+# Consulta 18: Cantidad de médicos en un hospital 
+```js
+db.areas_medicas.find({ id_hospital: "HOS001" })
+```
+
+# Consulta 19:Cantidad de enfermeras en un hospital
+```js
+db.personal.find({ id_hospital: "HOS001", id_rol: "003" }).count
+```
+
+# Consulta 20:Personal administrativo en un hospital 
+```js
+db.personal.find({ id_hospital: "HOS001", id_rol: "004" }).count
+```
+
+# Consulta 21:Personal de limpieza en un hospital
+```js
+db.personal.find({ id_hospital: "HOS001", id_rol: "004" }).count
+```
+
+# Consulta 22: Hospitales en Floridablanca
+```js
+db.personal.find({ id_hospital: "HOS001", id_rol: "004" }).count
+```
+
+# Consulta 23: Total de áreas médicas por hospital
+```js
+db.personal.find({ id_hospital: "HOS001", id_rol: "004" }).count
+```
+
+# Consulta 24:Salario promedio del personal por hospital
+```js
+db.personal.aggregate([
+  { $group: { _id: "$id_hospital", avg_salary: { $avg: "$salario" } } }
+])
+```
+
+# Consulta 25: Hospitales con información de director (lookup simple)
+```js
+db.hospitales.aggregate([
+  {
+    $lookup: {
+      from: "directores",
+      localField: "id_director",
+      foreignField: "id_director",
+      as: "director"
+    }
+  }
+])
+```
+
+# Consulta 26:Listar todos los medicamentos
+```js
+db.medicamentos.find()
+```
+
+# Consulta 27:Medicamentos por categoría con stock total
+```js
+db.medicamentos.aggregate([
+  {
+    $lookup: {
+      from: "categorias_medicamentos",
+      localField: "id_categoria",
+      foreignField: "id_categoria",
+      as: "categoria_info"
+    }
+  },
+  { $unwind: "$categoria_info" },
+  {
+    $group: {
+      _id: "$id_categoria",
+      categoria_nombre: { $first: "$categoria_info.nombre" },
+      total_medicamentos: { $sum: 1 },
+      stock_total: { $sum: "$stock_actual" }
+    }
+  }
+])
+```
+
+# Consulta 28:Medicamentos con stock bajo
+```js
+db.medicamentos.find({ stock_actual: { $lt: 100 } })
+```
+
+# Consulta 29:Inventario de medicamentos por hospital
+```js
+db.medicamentos.aggregate([
+  {
+    $lookup: {
+      from: "hospitales",
+      localField: "id_hospital",
+      foreignField: "id_hospital",
+      as: "hospital_info"
+    }
+  },
+  { $unwind: "$hospital_info" },
+  {
+    $group: {
+      _id: "$id_hospital",
+      hospital_nombre: { $first: "$hospital_info.nombre" },
+      total_medicamentos: { $sum: 1 },
+      valor_inventario: { $sum: "$stock_actual" }
+    }
+  }
+])
+```
+
+# Consulta 30:Medicamentos por fabricante
+```js
+db.medicamentos.aggregate([
+  {
+    $group: {
+      _id: "$fabricante",
+      total_productos: { $sum: 1 },
+      stock_total: { $sum: "$stock_actual" }
+    }
+  }
+])
+```
+# Consulta 31: Medicamentos más utilizados en tratamientos
+```js
+db.medicamento_tratamiento.aggregate([
+  {
+    $lookup: {
+      from: "medicamentos",
+      localField: "id_medicamento",
+      foreignField: "id_medicamento",
+      as: "medicamento_info"
+    }
+  },
+  { $unwind: "$medicamento_info" },
+  {
+    $group: {
+      _id: "$id_medicamento",
+      nombre_medicamento: { $first: "$medicamento_info.nombre" },
+      veces_usado: { $sum: 1 }
+    }
+  },
+  { $sort: { veces_usado: -1 } }
+])
+```
+
+# Consulta 32: Medicamentos de categoría “Antibióticos”
+```js
+db.medicamentos.find({ id_categoria: "CAT002" })
+```
+
+# Consulta 33: Buscar medicamentos que contengan “500mg”
+```js
+db.medicamentos.find({ nombre: { $regex: "500mg", $options: "i"
+```
+
+# Consulta 34: Stock total por categoría
+```js
+db.medicamentos.aggregate([
+  { $group: { _id: "$id_categoria", stock_total: { $sum: "$stock_actual" } } }
+])
+
+```
+
+# Consulta 35:Medicamentos con mayor stock
+```js
+db.medicamentos.find().sort({ stock_actual: -1 }).limit(10)
+```
+
+# Consulta 36:Medicamentos de fabricante Genfar
+```js
+db.medicamentos.find({ fabricante: "Genfar" })
+
+```
+
+# Consulta 37: Medicamentos con stock mayor o igual a 200
+```js
+db.medicamentos.find({ stock_actual: { $gte: 200 } })
+```
+# Consulta 38: Listar categorías de medicamentos
+```js
+db.categorias_medicamentos.find()
+```
+
+# Consulta 39:Medicamentos agrupados por fabricante
+```js
+db.medicamentos.aggregate([
+  { $group: { _id: "$fabricante", count: { $sum: 1 } } }
+])
+```
+
+# Consulta 40:Medicamentos de un hospital específico
+```js
+db.medicamentos.find({ id_hospital: "HOS001" })
+```
+
+# Consulta 41: Buscar medicamentos llamados “Acetaminofén”
+```js
+db.medicamentos.find({ nombre: { $regex: "Acetaminofén", $options:
+```
+
+# Consulta 42:Medicamentos con stock crítico
+```js
+db.medicamentos.aggregate([
+  { $match: { stock_actual: { $lt: 50 } } }
+])
+```
+
+# Consulta 43:Ordenar medicamentos por nombre
+```js
+db.medicamentos.find().sort({ nombre: 1 })
+```
+
+# Consulta 44:. Stock total de todos los medicamentos
+```js
+db.medicamentos.aggregate([
+  { $group: { _id: null, total_stock: { $sum: "$stock_actual" } } }
+])
+```
+
+# Consulta 45:Cantidad de medicamentos de una categoría
+```js
+db.medicamentos.find({ id_categoria: "CAT001" }).count()
+```
+
+# Consulta 46: Total de pacientes registrados
+```js
+db.pacientes.countDocuments()
+```
+
+# Consulta 47:Pacientes por EPS con estadísticas
+```js
+db.pacientes.aggregate([
+  {
+    $group: {
+      _id: "$seguro_medico",
+      total_pacientes: { $sum: 1 },
+      edades_promedio: {
+        $avg: {
+          $divide: [
+            { $subtract: [new Date(), { $dateFromString: { dateString: "$fecha_nacimiento" } }] },
+            365.25 * 24 * 60 * 60 * 1000
+          ]
+        }
+      }
+    }
+  }
+])
+
+```
+
+# Consulta 48:Historial de tratamientos por paciente
+```js
+db.historia_tratamiento.aggregate([
+  {
+    $lookup: {
+      from: "pacientes",
+      localField: "id_paciente",
+      foreignField: "id_paciente",
+      as: "paciente_info"
+    }
+  },
+  { $unwind: "$paciente_info" },
+  {
+    $lookup: {
+      from: "tratamientos",
+      localField: "id_tratamiento",
+      foreignField: "id_tratamiento",
+      as: "tratamiento_info"
+    }
+  },
+  { $unwind: "$tratamiento_info" },
+  {
+    $group: {
+      _id: "$id_paciente",
+      nombre_paciente: { $first: "$paciente_info.nombre" },
+      tratamientos: {
+        $push: {
+          nombre: "$tratamiento_info.nombre",
+          fecha_inicio: "$fecha_inicio",
+          estado: "$estado"
+        }
+      }
+    }
+  }
+])
+```
+# Consulta 49:Pacientes por género
+```js
+db.pacientes.aggregate([
+  { $group: { _id: "$sexo", total: { $sum: 1 } } }
+])
+```
+
+# Consulta 50:Diagnósticos más comunes
+```js
+db.visitas.aggregate([
+  { $group: { _id: "$diagnostico", frecuencia: { $sum: 1 } } },
+  { $sort: { frecuencia: -1 } },
+  { $limit: 10 }
+])
+```
+# Consulta 51:Pacientes con más visitas médicas
+```js
+db.visitas.aggregate([
+  {
+    $lookup: {
+      from: "pacientes",
+      localField: "id_paciente",
+      foreignField: "id_paciente",
+      as: "paciente_info"
+    }
+  },
+  { $unwind: "$paciente_info" },
+  {
+    $group: {
+      _id: "$id_paciente",
+      nombre_paciente: { $first: "$paciente_info.nombre" },
+      total_visitas: { $sum: 1 }
+    }
+  },
+  { $sort: { total_visitas: -1 } }
+])
+```
+
+# Consulta 52: Buscar pacientes por nombre
+```js
+db.pacientes.find({ nombre: { $regex: "María", $options: "i" } }
+```
+
+# Consulta 53:Pacientes por rango de edad
+```js
+javascript
+Copiar código
+db.pacientes.aggregate([
+  {
+    $addFields: {
+      edad: {
+        $floor: {
+          $divide: [
+            { $subtract: [new Date(), { $dateFromString: { dateString: "$fecha_nacimiento" } }] },
+            365.25 * 24 * 60 * 60 * 1000
+          ]
+        }
+      }
+    }
+  },
+  {
+    $bucket: {
+      groupBy: "$edad",
+      boundaries: [0, 18, 30, 50, 65, 100],
+      default: "Otros",
+      output: { count: { $sum: 1 } }
+    }
+  }
+])
+```
+
+# Consulta 54: Tratamientos activos por paciente
+```js
+db.historia_tratamiento.aggregate([
+  { $match: { estado: "Activo" } },
+  {
+    $lookup: {
+      from: "pacientes",
+      localField: "id_paciente",
+      foreignField: "id_paciente",
+      as: "paciente_info"
+    }
+  },
+  { $unwind: "$paciente_info" },
+  {
+    $lookup: {
+      from: "tratamientos",
+      localField: "id_tratamiento",
+      foreignField: "id_tratamiento",
+      as: "tratamiento_info"
+    }
+  },
+  { $unwind: "$tratamiento_info" },
+  {
+    $project: {
+      nombre_paciente: "$paciente_info.nombre",
+      tratamiento: "$tratamiento_info.nombre",
+      fecha_inicio: 1,
+      resultado: 1
+    }
+  }
+])
+```
+
+# Consulta 55:Pacientes con EPS Sanitas
+```js
+db.pacientes.find({ seguro_medico: "EPS Sanitas" })
+
+```
+
+# Consulta 56:Pacientes de sexo femenino
+```js
+db.pacientes.find({ sexo: "F" }).count()
+```
+
+# Consulta 57:Pacientes de sexo masculino
+```js
+db.pacientes.find({ sexo: "M" }).count()
+```
+
+# Consulta 58:Tratamientos completados
+```js
+db.historia_tratamiento.find({ estado: "Completado" })
+```
+
+# Consulta 59:. Visitas con diagnóstico de hipertensión
+```js
+db.visitas.find({ diagnostico: { $regex: "Hipertensión", $options
+```
+
+# Consulta 60: Pacientes con correo @email.com
+```js
+db.pacientes.find({ correo: { $regex: "@email.com" } })
+```
+
+# Consulta 61: Cantidad de tratamientos por estado
+
+```js
+db.historia_tratamiento.aggregate([
+  { $group: { _id: "$estado", count: { $sum: 1 } } }
+])
+```
+
+# Consulta 62:Pacientes más antiguos
+```js
+db.pacientes.find().sort({ fecha_nacimiento: 1 }).limit(5)
+```
+
+# Consulta 63:Visitas realizadas después de enero 2024
+```js
+db.visitas.find({ fecha_visita: { $gte: "2024-01-01" } })
+```
+
+# Consulta 64:Pacientes con teléfono que empieza en 310
+```js
+db.pacientes.find({ telefono: { $regex: "^310" } })
+```
+
+# Consulta 65:Tratamientos sin fecha de finalización
+```js
+db.historia_tratamiento.find({ fecha_fin: null })
+```
+
+# Consulta 66:Pacientes agrupados por EPS
+```js
+db.pacientes.aggregate([
+  { $group: { _id: "$seguro_medico", count: { $sum: 1 } } }
+])
+```
+
+# Consulta 67:Últimas 10 visitas médicas
+```js
+db.visitas.find().sort({ fecha_visita: -1 }).limit(10)
+```
+
+# Consulta 68:Pacientes que viven en Bucaramanga
+```js
+db.pacientes.find({ direccion: { $regex: "Bucaramanga" } })
+```
+
+# Consulta 69:Tratamientos con resultado favorable
+```js
+db.historia_tratamiento.find({ resultado: { $regex: "favorable", $o
+```
+
+# Consulta 70: Pacientes con documento que comienza por 109
+```js
+db.pacientes.find({ documento: { $regex: "^109" } })
+```
+
+# Consulta 71:Personal por especialidad
+```js
+db.personal.aggregate([
+  { $match: { id_especialidad: { $ne: null } } },
+  {
+    $lookup: {
+      from: "especialidades",
+      localField: "id_especialidad",
+      foreignField: "id_especialidad",
+      as: "especialidad_info"
+    }
+  },
+  { $unwind: "$especialidad_info" },
+  {
+    $group: {
+      _id: "$id_especialidad",
+      especialidad_nombre: { $first: "$especialidad_info.nombre_especialidad" },
+      total_personal: { $sum: 1 }
+    }
+  }
+])
+```
+# Consulta 72:Médicos con más pacientes atendidos
+```js
+db.visitas.aggregate([
+  {
+    $lookup: {
+      from: "personal",
+      localField: "id_personal",
+      foreignField: "id_personal",
+      as: "medico_info"
+    }
+  },
+  { $unwind: "$medico_info" },
+  {
+    $group: {
+      _id: "$id_personal",
+      nombre_medico: { $first: "$medico_info.nombre" },
+      total_consultas: { $sum: 1 }
+    }
+  },
+  { $sort: { total_consultas: -1 } }
+])
+```
+
+# Consulta 73:Personal agrupado por rol
+```js
+db.personal.aggregate([
+  {
+    $lookup: {
+      from: "roles",
+      localField: "id_rol",
+      foreignField: "id_rol",
+      as: "rol_info"
+    }
+  },
+  { $unwind: "$rol_info" },
+  {
+    $group: {
+      _id: "$id_rol",
+      rol_nombre: { $first: "$rol_info.nombre_rol" },
+      cantidad: { $sum: 1 }
+    }
+  }
+])
+```
+# Consulta 74:Actividad por área médica
+```js
+db.visitas.aggregate([
+  {
+    $lookup: {
+      from: "areas_medicas",
+      localField: "id_area",
+      foreignField: "id_area",
+      as: "area_info"
+    }
+  },
+  { $unwind: "$area_info" },
+  {
+    $group: {
+      _id: "$id_area",
+      area_nombre: { $first: "$area_info.nombre" },
+      total_visitas: { $sum: 1 }
+    }
+  },
+  { $sort: { total_visitas: -1 } }
+])
+```
+# Consulta 75:Actividad por área médica
+```js
+db.personal.find({ id_rol: "002" })
+```
+# Consulta 76:Contar enfermeras
+```js
+db.personal.find({ id_rol: "003" }).count()
+```
+# Consulta 77:Personal con salarios mayores a 5M
+```js
+db.personal.find({ salario: { $gte: 5000000 } })
+```
+
+# Consulta 78: Salario promedio por rol
+```js
+db.personal.aggregate([
+  { $group: { _id: "$id_rol", avg_salary: { $avg: "$salario" } } }
+])
+```
+# Consulta 79:Personal cuyo nombre contiene “Dr.”
+```js
+db.personal.find({ nombre: { $regex: "Dr.", $options: "i" } })
+```
+
+# Consulta 80:Top 10 salarios más altos
+```js
+db.personal.find().sort({ salario: -1 }).limit(10)
+```
+# Consulta 81:Médicos en hospital HOS001
+```js
+db.personal.find({ id_hospital: "HOS001", id_rol: "002" })
+```
+# Consulta 82:Cantidad de personal por especialidad
+```js
+db.personal.aggregate([
+  { $group: { _id: "$id_especialidad", count: { $sum: 1 } } }
+])
+```
+
+# Consulta 83:Personal con correo institucional
+```js
+db.personal.find({ correo: { $regex: "@hus.gov.co" } })
+```
+
+# Consulta 84: Personal con número de colegiatura
+```js
+db.personal.find({ numero_colegiatura: { $ne: null } })
+```
+# Consulta 85:Total de nómina
+```js
+db.personal.aggregate([
+  { $group: { _id: null, total_nomina: { $sum: "$salario" } } }
+])
+```
+
+# Consulta 86: Visitas por mes
+```js
+db.visitas.aggregate([
+  {
+    $addFields: {
+      mes: { $month: { $dateFromString: { dateString: "$fecha_visita" } } },
+      año: { $year: { $dateFromString: { dateString: "$fecha_visita" } } }
+    }
+  },
+  {
+    $group: {
+      _id: { mes: "$mes", año: "$año" },
+      total_visitas: { $sum: 1 }
+    }
+  },
+  { $sort: { "_id.año": 1, "_id.mes": 1 } }
+])
+```
+
+# Consulta 87:Motivos de consulta más frecuentes
+```js
+db.visitas.aggregate([
+  { $group: { _id: "$motivo", frecuencia: { $sum: 1 } } },
+  { $sort: { frecuencia: -1 } }
+])
+```
+
+# Consulta 88:Estadísticas de facturación
+```js
+db.facturas.aggregate([
+  {
+    $group: {
+      _id: null,
+      total_facturas: { $sum: 1 },
+      monto_total: { $sum: "$total" },
+      promedio_factura: { $avg: "$total" }
+    }
+  }
+])
+```
+
+# Consulta 89:Visitas por hospital
+```js
+db.visitas.aggregate([
+  {
+    $lookup: {
+      from: "hospitales",
+      localField: "id_hospital",
+      foreignField: "id_hospital",
+      as: "hospital_info"
+    }
+  },
+  { $unwind: "$hospital_info" },
+  {
+    $group: {
+      _id: "$id_hospital",
+      hospital_nombre: { $first: "$hospital_info.nombre" },
+      total_visitas: { $sum: 1 }
+    }
+  }
+])
+```
+
+# Consulta 90:Tratamientos más costosos
+```js
+db.tratamientos.aggregate([
+  {
+    $lookup: {
+      from: "areas_medicas",
+      localField: "id_area",
+      foreignField: "id_area",
+      as: "area_info"
+    }
+  },
+  { $unwind: "$area_info" },
+  {
+    $project: {
+      nombre: 1,
+      costo: 1,
+      area_nombre: "$area_info.nombre"
+    }
+  },
+  { $sort: { costo: -1 } },
+  { $limit: 10 }
+])
+```
+# Consulta 91:Visitas en fecha específica
+```js
+db.visitas.find({ fecha_visita: "2024-01-15" })
+```
+
+# Consulta 92: Facturas más altas
+```js
+db.facturas.find().sort({ total: -1 }).limit(5)
+```
+
+# Consulta 93:Total de visitas por hospital
+```js
+db.visitas.aggregate([
+  { $group: { _id: "$id_hospital", count: { $sum: 1 } } }
+])
+```
+
+# Consulta 94:Total facturado en detalle de factura
+```js
+db.detalle_factura.aggregate([
+  { $group: { _id: null, total: { $sum: "$subtotal" } } }
+])
+```
+
+# Consulta 95:Visitas en horario de la mañana
+```js
+db.visitas.find({ hora_visita: { $regex: "^08" } })
+```
+
+# Consulta 96:Facturas emitidas desde febrero 2024
+```js
+db.facturas.find({ fecha_emision: { $gte: "2024-02-01" } })
+```
+
+# Consulta 97:Lista de tratamientos por costo descendente
+```js
+db.tratamientos.find().sort({ costo: -1 })
+```
+
+# Consulta 98:Visitas con diagnóstico de control
+```js
+db.visitas.find({ diagnostico: { $regex: "control", $options: "i" } 
+```
+
+# Consulta 99:Facturación mensual
+```js
+db.facturas.aggregate([
+  {
+    $addFields: {
+      mes: { $month: { $dateFromString: { dateString: "$fecha_emision" } } },
+      año: { $year: { $dateFromString: { dateString: "$fecha_emision" } } }
+    }
+  },
+  {
+    $group: {
+      _id: { mes: "$mes", año: "$año" },
+      total: { $sum: "$total" }
+    }
+  }
+])
+```
+
+# Consulta 100:Top 5 hospitales con más facturación
+```js
+db.facturas.aggregate([
+  {
+    $lookup: {
+      from: "hospitales",
+      localField: "id_hospital",
+      foreignField: "id_hospital",
+      as: "hospital_info"
+    }
+  },
+  { $unwind: "$hospital_info" },
+  {
+    $group: {
+      _id: "$id_hospital",
+      hospital_nombre: { $first: "$hospital_info.nombre" },
+      total_facturado: { $sum: "$total" }
+    }
+  },
+  { $sort: { total_facturado: -1 } },
+  { $limit: 5 }
+])
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,1111 @@
+// 1. Cuenta cuántos hospitales están registrados en la colección.
+
+
+db.hospitales.countDocuments()
+
+//2.Obtiene todos los hospitales incluyendo la referencia al ID del director.
+
+
+db.hospitales.find()
+
+//3.Muestra cuántos hospitales hay en cada ciudad.
+
+
+db.hospitales.aggregate([
+  { $group: { _id: "$ciudad", total: { $sum: 1 } } }
+])
+
+//4.Usa $lookup para mostrar datos del hospital junto a nombre, correo y teléfono del director.
+
+db.hospitales.aggregate([
+  {
+    $lookup: {
+      from: "directores",
+      localField: "id_director",
+      foreignField: "id_director",
+      as: "director_info"
+    }
+  },
+  { $unwind: "$director_info" },
+  {
+    $project: {
+      nombre: 1,
+      ciudad: 1,
+      direccion: 1,
+      "director_info.nombre": 1,
+      "director_info.correo": 1,
+      "director_info.telefono": 1
+    }
+  }
+])
+
+//5. Cuenta los empleados con rol "Médico" (id_rol = 002) por hospital.
+
+
+db.personal.aggregate([
+  { $match: { id_rol: "002" } },
+  {
+    $lookup: {
+      from: "hospitales",
+      localField: "id_hospital",
+      foreignField: "id_hospital",
+      as: "hospital_info"
+    }
+  },
+  { $unwind: "$hospital_info" },
+  {
+    $group: {
+      _id: "$id_hospital",
+      hospital_nombre: { $first: "$hospital_info.nombre" },
+      total_medicos: { $sum: 1 }
+    }
+  },
+  { $sort: { total_medicos: -1 } }
+])
+
+
+//6.Similar al anterior pero filtrando por id_rol = 003.
+
+db.personal.aggregate([
+  { $match: { id_rol: "003" } },
+  {
+    $lookup: {
+      from: "hospitales",
+      localField: "id_hospital",
+      foreignField: "id_hospital",
+      as: "hospital_info"
+    }
+  },
+  { $unwind: "$hospital_info" },
+  {
+    $group: {
+      _id: "$id_hospital",
+      hospital_nombre: { $first: "$hospital_info.nombre" },
+      total_enfermeras: { $sum: 1 }
+    }
+  }
+])
+
+//7. Lista las áreas médicas disponibles por hospital junto con la cantidad total.
+
+
+db.areas_medicas.aggregate([
+  {
+    $lookup: {
+      from: "hospitales",
+      localField: "id_hospital",
+      foreignField: "id_hospital",
+      as: "hospital_info"
+    }
+  },
+  { $unwind: "$hospital_info" },
+  {
+    $group: {
+      _id: "$id_hospital",
+      hospital_nombre: { $first: "$hospital_info.nombre" },
+      total_areas: { $sum: 1 },
+      areas: { $push: "$nombre" }
+    }
+  }
+])
+
+//8. Cuenta el número total de empleados en cada hospital.
+
+
+db.personal.aggregate([
+  {
+    $group: {
+      _id: "$id_hospital",
+      total_personal: { $sum: 1 }
+    }
+  }
+])
+
+
+//9.Muestra cuántos empleados hay por rol (médico, enfermera, etc.) en cada hospital.
+
+db.personal.aggregate([
+  {
+    $lookup: {
+      from: "roles",
+      localField: "id_rol",
+      foreignField: "id_rol",
+      as: "rol_info"
+    }
+  },
+  { $unwind: "$rol_info" },
+  {
+    $lookup: {
+      from: "hospitales",
+      localField: "id_hospital",
+      foreignField: "id_hospital",
+      as: "hospital_info"
+    }
+  },
+  { $unwind: "$hospital_info" },
+  {
+    $group: {
+      _id: {
+        hospital: "$id_hospital",
+        rol: "$id_rol"
+      },
+      hospital_nombre: { $first: "$hospital_info.nombre" },
+      rol_nombre: { $first: "$rol_info.nombre_rol" },
+      cantidad: { $sum: 1 }
+    }
+  }
+])
+
+//10.Devuelve el hospital con mayor cantidad de empleados.
+
+db.personal.aggregate([
+  {
+    $group: {
+      _id: "$id_hospital",
+      total: { $sum: 1 }
+    }
+  },
+  { $sort: { total: -1 } },
+  { $limit: 1 }
+])
+
+//11. Calcula el salario promedio y la nómina total de cada hospital.
+
+
+db.personal.aggregate([
+  {
+    $lookup: {
+      from: "hospitales",
+      localField: "id_hospital",
+      foreignField: "id_hospital",
+      as: "hospital_info"
+    }
+  },
+  { $unwind: "$hospital_info" },
+  {
+    $group: {
+      _id: "$id_hospital",
+      hospital_nombre: { $first: "$hospital_info.nombre" },
+      promedio_salarial: { $avg: "$salario" },
+      total_nomina: { $sum: "$salario" }
+    }
+  }
+])
+
+//12.Filtra los hospitales ubicados en la ciudad de Bucaramanga.
+
+db.hospitales.find({ ciudad: "Bucaramanga" })
+
+//13.Lista las especialidades médicas por hospital sin duplicados.
+
+
+db.personal.aggregate([
+  { $match: { id_especialidad: { $ne: null } } },
+  {
+    $lookup: {
+      from: "especialidades",
+      localField: "id_especialidad",
+      foreignField: "id_especialidad",
+      as: "especialidad_info"
+    }
+  },
+  { $unwind: "$especialidad_info" },
+  {
+    $lookup: {
+      from: "hospitales",
+      localField: "id_hospital",
+      foreignField: "id_hospital",
+      as: "hospital_info"
+    }
+  },
+  { $unwind: "$hospital_info" },
+  {
+    $group: {
+      _id: "$id_hospital",
+      hospital_nombre: { $first: "$hospital_info.nombre" },
+      especialidades: { $addToSet: "$especialidad_info.nombre_especialidad" }
+    }
+  }
+])
+
+//14.Encuentra el director responsable de la mayor cantidad de hospitales.
+
+
+db.hospitales.aggregate([
+  {
+    $group: {
+      _id: "$id_director",
+      total_hospitales: { $sum: 1 }
+    }
+  },
+  { $sort: { total_hospitales: -1 } }
+])
+
+//15. Muestra información general del hospital, incluyendo total de personal, áreas, médicos y enfermeras.
+
+
+db.hospitales.aggregate([
+  {
+    $lookup: {
+      from: "personal",
+      localField: "id_hospital",
+      foreignField: "id_hospital",
+      as: "personal"
+    }
+  },
+  {
+    $lookup: {
+      from: "areas_medicas",
+      localField: "id_hospital",
+      foreignField: "id_hospital",
+      as: "areas"
+    }
+  },
+  {
+    $lookup: {
+      from: "directores",
+      localField: "id_director",
+      foreignField: "id_director",
+      as: "director"
+    }
+  },
+  { $unwind: "$director" },
+  {
+    $project: {
+      nombre: 1,
+      ciudad: 1,
+      direccion: 1,
+      director_nombre: "$director.nombre",
+      total_personal: { $size: "$personal" },
+      total_areas: { $size: "$areas" },
+      medicos: {
+        $size: {
+          $filter: {
+            input: "$personal",
+            cond: { $eq: ["$$this.id_rol", "002"] }
+          }
+        }
+      },
+      enfermeras: {
+        $size: {
+          $filter: {
+            input: "$personal",
+            cond: { $eq: ["$$this.id_rol", "003"] }
+          }
+        }
+      }
+    }
+  }
+])
+
+//16.Muestra información general del hospital, incluyendo total de personal, áreas, médicos y enfermeras.
+
+
+db.hospitales.aggregate([
+  {
+    $lookup: {
+      from: "personal",
+      localField: "id_hospital",
+      foreignField: "id_hospital",
+      as: "personal"
+    }
+  },
+  {
+    $lookup: {
+      from: "areas_medicas",
+      localField: "id_hospital",
+      foreignField: "id_hospital",
+      as: "areas"
+    }
+  },
+  {
+    $lookup: {
+      from: "directores",
+      localField: "id_director",
+      foreignField: "id_director",
+      as: "director"
+    }
+  },
+  { $unwind: "$director" },
+  {
+    $project: {
+      nombre: 1,
+      ciudad: 1,
+      direccion: 1,
+      director_nombre: "$director.nombre",
+      total_personal: { $size: "$personal" },
+      total_areas: { $size: "$areas" },
+      medicos: {
+        $size: {
+          $filter: {
+            input: "$personal",
+            cond: { $eq: ["$$this.id_rol", "002"] }
+          }
+        }
+      },
+      enfermeras: {
+        $size: {
+          $filter: {
+            input: "$personal",
+            cond: { $eq: ["$$this.id_rol", "003"] }
+          }
+        }
+      }
+    }
+  }
+])
+
+//17.Lista las áreas médicas del hospital con ID "HOS001".
+
+
+db.areas_medicas.find({ id_hospital: "HOS001" })
+
+//18.Lista las áreas médicas del hospital con ID "HOS001".
+
+
+db.areas_medicas.find({ id_hospital: "HOS001" })
+
+//19. Cuenta las enfermeras (id_rol = 003) en el hospital "HOS001".
+
+
+db.personal.find({ id_hospital: "HOS001", id_rol: "003" }).count
+
+//20.Cuenta el personal administrativo (id_rol = 004) del hospital "HOS001".
+
+
+db.personal.find({ id_hospital: "HOS001", id_rol: "004" }).count
+
+//21.Cuenta el personal administrativo (id_rol = 004) del hospital "HOS001".
+
+db.personal.find({ id_hospital: "HOS001", id_rol: "004" }).count
+
+//22.Cuenta el personal administrativo (id_rol = 004) del hospital "HOS001".
+
+
+db.personal.find({ id_hospital: "HOS001", id_rol: "004" }).count
+
+//23.Cuenta el personal administrativo (id_rol = 004) del hospital "HOS001".
+
+db.personal.find({ id_hospital: "HOS001", id_rol: "004" }).count
+
+//24.Muestra el salario promedio en cada hospital.
+
+db.personal.aggregate([
+  { $group: { _id: "$id_hospital", avg_salary: { $avg: "$salario" } } }
+])
+
+//25.Une hospitales con sus directores sin procesar datos adicionales.
+
+
+db.hospitales.aggregate([
+  {
+    $lookup: {
+      from: "directores",
+      localField: "id_director",
+      foreignField: "id_director",
+      as: "director"
+    }
+  }
+])
+
+//26.Muestra todos los medicamentos disponibles en inventario.
+
+db.medicamentos.find()
+
+//27.Agrupa medicamentos por categoría mostrando la cantidad de productos y el stock total.
+
+
+db.medicamentos.aggregate([
+  {
+    $lookup: {
+      from: "categorias_medicamentos",
+      localField: "id_categoria",
+      foreignField: "id_categoria",
+      as: "categoria_info"
+    }
+  },
+  { $unwind: "$categoria_info" },
+  {
+    $group: {
+      _id: "$id_categoria",
+      categoria_nombre: { $first: "$categoria_info.nombre" },
+      total_medicamentos: { $sum: 1 },
+      stock_total: { $sum: "$stock_actual" }
+    }
+  }
+])
+
+//28.Encuentra medicamentos con menos de 100 unidades disponibles.
+
+
+db.medicamentos.find({ stock_actual: { $lt: 100 } })
+
+//29.Muestra cuántos medicamentos hay y el valor total de inventario por hospital.
+
+
+db.medicamentos.aggregate([
+  {
+    $lookup: {
+      from: "hospitales",
+      localField: "id_hospital",
+      foreignField: "id_hospital",
+      as: "hospital_info"
+    }
+  },
+  { $unwind: "$hospital_info" },
+  {
+    $group: {
+      _id: "$id_hospital",
+      hospital_nombre: { $first: "$hospital_info.nombre" },
+      total_medicamentos: { $sum: 1 },
+      valor_inventario: { $sum: "$stock_actual" }
+    }
+  }
+])
+
+//30. Agrupa medicamentos por fabricante y muestra el stock total.
+
+
+db.medicamentos.aggregate([
+  {
+    $group: {
+      _id: "$fabricante",
+      total_productos: { $sum: 1 },
+      stock_total: { $sum: "$stock_actual" }
+    }
+  }
+])
+
+//31.Cuenta cuántas veces se ha usado cada medicamento en tratamientos.
+
+
+db.medicamento_tratamiento.aggregate([
+  {
+    $lookup: {
+      from: "medicamentos",
+      localField: "id_medicamento",
+      foreignField: "id_medicamento",
+      as: "medicamento_info"
+    }
+  },
+  { $unwind: "$medicamento_info" },
+  {
+    $group: {
+      _id: "$id_medicamento",
+      nombre_medicamento: { $first: "$medicamento_info.nombre" },
+      veces_usado: { $sum: 1 }
+    }
+  },
+  { $sort: { veces_usado: -1 } }
+])
+
+//32.Filtra medicamentos que pertenecen a la categoría "CAT002".
+
+db.medicamentos.find({ id_categoria: "CAT002" })
+
+
+//33.Usa regex para buscar en el nombre del medicamento.
+
+db.medicamentos.find({ nombre: { $regex: "500mg", $options: "i"
+
+//34. Agrupa y suma el stock por cada categoría de medicamentos.
+
+
+db.medicamentos.aggregate([
+  { $group: { _id: "$id_categoria", stock_total: { $sum: "$stock_actual" } } }
+])
+
+//35. Obtiene los 10 medicamentos con mayor cantidad disponible.
+
+
+db.medicamentos.find().sort({ stock_actual: -1 }).limit(10)
+
+//36. Busca todos los medicamentos producidos por Genfar.
+
+
+db.medicamentos.find({ fabricante: "Genfar" })
+
+//37.Filtra medicamentos con buen stock.
+
+
+db.medicamentos.find({ stock_actual: { $gte: 200 } })
+
+//38.Muestra todas las categorías registradas.
+
+
+db.categorias_medicamentos.find()
+
+//39. Cuenta cuántos medicamentos produce cada fabricante.
+
+db.medicamentos.aggregate([
+  { $group: { _id: "$fabricante", count: { $sum: 1 } } }
+])
+
+
+//40. Lista medicamentos del hospital "HOS001".
+
+db.medicamentos.find({ id_hospital: "HOS001" })
+
+//41.Usa regex para búsqueda flexible por nombre.
+
+db.medicamentos.find({ nombre: { $regex: "Acetaminofén", $options:
+
+//42.Selecciona medicamentos con menos de 50 unidades disponibles.
+
+
+db.medicamentos.aggregate([
+  { $match: { stock_actual: { $lt: 50 } } }
+])
+
+//43.Lista todos los medicamentos ordenados alfabéticamente.
+
+
+db.medicamentos.find().sort({ nombre: 1 })
+
+//44.Suma la cantidad de stock de todos los medicamentos.
+
+db.medicamentos.aggregate([
+  { $group: { _id: null, total_stock: { $sum: "$stock_actual" } } }
+])
+
+//45.Cuenta medicamentos en la categoría "CAT001".
+
+
+db.medicamentos.find({ id_categoria: "CAT001" }).count()
+
+
+//46. Cuenta cuántos pacientes existen en la base de datos.
+
+db.pacientes.countDocuments()
+
+//47.Agrupa pacientes por seguro médico y calcula total y edad promedio.
+
+db.pacientes.aggregate([
+  {
+    $group: {
+      _id: "$seguro_medico",
+      total_pacientes: { $sum: 1 },
+      edades_promedio: {
+        $avg: {
+          $divide: [
+            { $subtract: [new Date(), { $dateFromString: { dateString: "$fecha_nacimiento" } }] },
+            365.25 * 24 * 60 * 60 * 1000
+          ]
+        }
+      }
+    }
+  }
+])
+
+//48.Muestra los tratamientos recibidos por cada paciente.
+
+db.historia_tratamiento.aggregate([
+  {
+    $lookup: {
+      from: "pacientes",
+      localField: "id_paciente",
+      foreignField: "id_paciente",
+      as: "paciente_info"
+    }
+  },
+  { $unwind: "$paciente_info" },
+  {
+    $lookup: {
+      from: "tratamientos",
+      localField: "id_tratamiento",
+      foreignField: "id_tratamiento",
+      as: "tratamiento_info"
+    }
+  },
+  { $unwind: "$tratamiento_info" },
+  {
+    $group: {
+      _id: "$id_paciente",
+      nombre_paciente: { $first: "$paciente_info.nombre" },
+      tratamientos: {
+        $push: {
+          nombre: "$tratamiento_info.nombre",
+          fecha_inicio: "$fecha_inicio",
+          estado: "$estado"
+        }
+      }
+    }
+  }
+])
+
+//49.Cuenta pacientes agrupándolos por sexo.
+
+db.pacientes.aggregate([
+  { $group: { _id: "$sexo", total: { $sum: 1 } } }
+])
+
+//50.Lista los 10 diagnósticos más frecuentes en visitas médicas.
+
+db.visitas.aggregate([
+  { $group: { _id: "$diagnostico", frecuencia: { $sum: 1 } } },
+  { $sort: { frecuencia: -1 } },
+  { $limit: 10 }
+])
+
+//51.Muestra pacientes que han tenido más consultas.
+
+db.visitas.aggregate([
+  {
+    $lookup: {
+      from: "pacientes",
+      localField: "id_paciente",
+      foreignField: "id_paciente",
+      as: "paciente_info"
+    }
+  },
+  { $unwind: "$paciente_info" },
+  {
+    $group: {
+      _id: "$id_paciente",
+      nombre_paciente: { $first: "$paciente_info.nombre" },
+      total_visitas: { $sum: 1 }
+    }
+  },
+  { $sort: { total_visitas: -1 } }
+])
+
+//52.Encuentra pacientes cuyo nombre contiene “María”.
+
+
+db.pacientes.find({ nombre: { $regex: "María", $options: "i" } }
+
+//53.Clasifica pacientes en grupos de edades.
+
+javascript
+Copiar código
+db.pacientes.aggregate([
+  {
+    $addFields: {
+      edad: {
+        $floor: {
+          $divide: [
+            { $subtract: [new Date(), { $dateFromString: { dateString: "$fecha_nacimiento" } }] },
+            365.25 * 24 * 60 * 60 * 1000
+          ]
+        }
+      }
+    }
+  },
+  {
+    $bucket: {
+      groupBy: "$edad",
+      boundaries: [0, 18, 30, 50, 65, 100],
+      default: "Otros",
+      output: { count: { $sum: 1 } }
+    }
+  }
+])
+
+//54.Muestra los tratamientos que están en estado “Activo”.
+
+db.historia_tratamiento.aggregate([
+  { $match: { estado: "Activo" } },
+  {
+    $lookup: {
+      from: "pacientes",
+      localField: "id_paciente",
+      foreignField: "id_paciente",
+      as: "paciente_info"
+    }
+  },
+  { $unwind: "$paciente_info" },
+  {
+    $lookup: {
+      from: "tratamientos",
+      localField: "id_tratamiento",
+      foreignField: "id_tratamiento",
+      as: "tratamiento_info"
+    }
+  },
+  { $unwind: "$tratamiento_info" },
+  {
+    $project: {
+      nombre_paciente: "$paciente_info.nombre",
+      tratamiento: "$tratamiento_info.nombre",
+      fecha_inicio: 1,
+      resultado: 1
+    }
+  }
+])
+
+//55.Filtra pacientes con seguro médico "EPS Sanitas".
+
+db.pacientes.find({ seguro_medico: "EPS Sanitas" })
+
+//56.Cuenta cuántos pacientes son mujeres.
+
+
+db.pacientes.find({ sexo: "F" }).count()
+
+//57.Cuenta cuántos pacientes son hombres.
+
+db.pacientes.find({ sexo: "M" }).count()
+
+//58.Lista tratamientos cuyo estado es “Completado”.
+
+db.historia_tratamiento.find({ estado: "Completado" })
+
+//59.Busca visitas donde el diagnóstico contiene “Hipertensión”.
+
+db.visitas.find({ diagnostico: { $regex: "Hipertensión", $options
+
+//60.Filtra pacientes cuyo correo contiene “@email.com”.
+
+db.pacientes.find({ correo: { $regex: "@email.com" } })
+
+//61.Cuenta tratamientos agrupándolos según su estado.
+
+
+db.historia_tratamiento.aggregate([
+  { $group: { _id: "$estado", count: { $sum: 1 } } }
+])
+
+//62.Muestra los 5 pacientes con fecha de nacimiento más antigua.
+
+db.pacientes.find().sort({ fecha_nacimiento: 1 }).limit(5)
+
+//63.Filtra visitas con fecha mayor a 2024-01-01.
+
+
+db.visitas.find({ fecha_visita: { $gte: "2024-01-01" } })
+
+//64.Busca pacientes cuyo teléfono comienza con 310.
+
+
+db.pacientes.find({ telefono: { $regex: "^310" } })
+
+//65.Lista tratamientos en curso sin fecha de fin.
+
+
+db.historia_tratamiento.find({ fecha_fin: null })
+
+//66.Cuenta pacientes por compañía de seguro médico.
+
+db.pacientes.aggregate([
+  { $group: { _id: "$seguro_medico", count: { $sum: 1 } } }
+])
+
+//67.Ordena visitas por fecha descendente y muestra las últimas 10.
+
+
+db.visitas.find().sort({ fecha_visita: -1 }).limit(10)
+
+//68.Filtra pacientes cuya dirección incluye Bucaramanga.
+
+db.pacientes.find({ direccion: { $regex: "Bucaramanga" } })
+
+//69.Busca tratamientos cuyo resultado contiene “favorable”.
+
+
+db.historia_tratamiento.find({ resultado: { $regex: "favorable", $o
+
+//70.Encuentra pacientes cuyo número de documento empieza con 109.
+
+
+db.pacientes.find({ documento: { $regex: "^109" } })
+
+//71.Agrupa personal por especialidad y muestra cantidad.
+
+
+db.personal.aggregate([
+  { $match: { id_especialidad: { $ne: null } } },
+  {
+    $lookup: {
+      from: "especialidades",
+      localField: "id_especialidad",
+      foreignField: "id_especialidad",
+      as: "especialidad_info"
+    }
+  },
+  { $unwind: "$especialidad_info" },
+  {
+    $group: {
+      _id: "$id_especialidad",
+      especialidad_nombre: { $first: "$especialidad_info.nombre_especialidad" },
+      total_personal: { $sum: 1 }
+    }
+  }
+])
+
+//72.Lista médicos ordenados según número de consultas realizadas.
+
+
+db.visitas.aggregate([
+  {
+    $lookup: {
+      from: "personal",
+      localField: "id_personal",
+      foreignField: "id_personal",
+      as: "medico_info"
+    }
+  },
+  { $unwind: "$medico_info" },
+  {
+    $group: {
+      _id: "$id_personal",
+      nombre_medico: { $first: "$medico_info.nombre" },
+      total_consultas: { $sum: 1 }
+    }
+  },
+  { $sort: { total_consultas: -1 } }
+])
+
+//73.Cuenta personal en cada rol (médico, enfermero, etc.).
+
+
+db.personal.aggregate([
+  {
+    $lookup: {
+      from: "roles",
+      localField: "id_rol",
+      foreignField: "id_rol",
+      as: "rol_info"
+    }
+  },
+  { $unwind: "$rol_info" },
+  {
+    $group: {
+      _id: "$id_rol",
+      rol_nombre: { $first: "$rol_info.nombre_rol" },
+      cantidad: { $sum: 1 }
+    }
+  }
+])
+
+//74.Cuenta cuántas visitas se han realizado por área médica.
+
+
+db.visitas.aggregate([
+  {
+    $lookup: {
+      from: "areas_medicas",
+      localField: "id_area",
+      foreignField: "id_area",
+      as: "area_info"
+    }
+  },
+  { $unwind: "$area_info" },
+  {
+    $group: {
+      _id: "$id_area",
+      area_nombre: { $first: "$area_info.nombre" },
+      total_visitas: { $sum: 1 }
+    }
+  },
+  { $sort: { total_visitas: -1 } }
+])
+
+//75.Filtra personal cuyo rol es médico (id_rol = "002").
+
+
+db.personal.find({ id_rol: "002" })
+
+//76.Cuenta cuántas personas tienen el rol de enfermera (003).
+
+
+db.personal.find({ id_rol: "003" }).count()
+
+//77.Filtra empleados que ganan más de 5,000,000.
+
+db.personal.find({ salario: { $gte: 5000000 } })
+
+//78.Calcula el salario promedio de cada rol.
+
+db.personal.aggregate([
+  { $group: { _id: "$id_rol", avg_salary: { $avg: "$salario" } } }
+])
+
+//79.Busca nombres con el prefijo “Dr.”.
+
+db.personal.find({ nombre: { $regex: "Dr.", $options: "i" } })
+
+//80.Lista el personal mejor pagado.
+
+db.personal.find().sort({ salario: -1 }).limit(10)
+
+//81.Filtra médicos (002) del hospital específico.
+
+db.personal.find({ id_hospital: "HOS001", id_rol: "002" })
+
+//82.Cuenta cuántos empleados hay en cada especialidad.
+
+db.personal.aggregate([
+  { $group: { _id: "$id_especialidad", count: { $sum: 1 } } }
+])
+
+//83.Busca correos que contengan “@hus.gov.co”.
+
+db.personal.find({ correo: { $regex: "@hus.gov.co" } })
+
+//84.Filtra personal que tiene número de colegiatura registrado.
+
+db.personal.find({ numero_colegiatura: { $ne: null } })
+
+//85.Suma los salarios de todo el personal.
+
+db.personal.aggregate([
+  { $group: { _id: null, total_nomina: { $sum: "$salario" } } }
+])
+
+//86.Agrupa visitas mostrando cuántas hubo por mes y año.
+
+db.visitas.aggregate([
+  {
+    $addFields: {
+      mes: { $month: { $dateFromString: { dateString: "$fecha_visita" } } },
+      año: { $year: { $dateFromString: { dateString: "$fecha_visita" } } }
+    }
+  },
+  {
+    $group: {
+      _id: { mes: "$mes", año: "$año" },
+      total_visitas: { $sum: 1 }
+    }
+  },
+  { $sort: { "_id.año": 1, "_id.mes": 1 } }
+])
+
+//87.Cuenta cuántas veces aparece cada motivo.
+
+db.visitas.aggregate([
+  { $group: { _id: "$motivo", frecuencia: { $sum: 1 } } },
+  { $sort: { frecuencia: -1 } }
+])
+
+//88.Calcula el total, monto y promedio de facturas.
+
+db.facturas.aggregate([
+  {
+    $group: {
+      _id: null,
+      total_facturas: { $sum: 1 },
+      monto_total: { $sum: "$total" },
+      promedio_factura: { $avg: "$total" }
+    }
+  }
+])
+
+//89.Muestra la cantidad de visitas en cada hospital.
+
+db.visitas.aggregate([
+  {
+    $lookup: {
+      from: "hospitales",
+      localField: "id_hospital",
+      foreignField: "id_hospital",
+      as: "hospital_info"
+    }
+  },
+  { $unwind: "$hospital_info" },
+  {
+    $group: {
+      _id: "$id_hospital",
+      hospital_nombre: { $first: "$hospital_info.nombre" },
+      total_visitas: { $sum: 1 }
+    }
+  }
+])
+
+//90.Ordena tratamientos por costo y muestra los 10 más altos.
+
+db.tratamientos.aggregate([
+  {
+    $lookup: {
+      from: "areas_medicas",
+      localField: "id_area",
+      foreignField: "id_area",
+      as: "area_info"
+    }
+  },
+  { $unwind: "$area_info" },
+  {
+    $project: {
+      nombre: 1,
+      costo: 1,
+      area_nombre: "$area_info.nombre"
+    }
+  },
+  { $sort: { costo: -1 } },
+  { $limit: 10 }
+])
+
+//91.Filtra visitas realizadas el 2024-01-15.
+
+db.visitas.find({ fecha_visita: "2024-01-15" })
+
+//92.Muestra las 5 facturas con mayor valor.
+
+db.facturas.find().sort({ total: -1 }).limit(5)
+
+//93.Agrupa visitas mostrando cuántas hubo por hospital.
+
+db.visitas.aggregate([
+  { $group: { _id: "$id_hospital", count: { $sum: 1 } } }
+])
+
+//94.Suma el subtotal de todos los detalles de facturas.
+
+db.detalle_factura.aggregate([
+  { $group: { _id: null, total: { $sum: "$subtotal" } } }
+])
+
+//95.Busca visitas cuyo horario comienza con “08”.
+
+db.visitas.find({ hora_visita: { $regex: "^08" } })
+
+//96.Filtra facturas con fecha posterior a 2024-02-01.
+
+db.facturas.find({ fecha_emision: { $gte: "2024-02-01" } })
+
+//97.Ordena todos los tratamientos de mayor a menor costo.
+
+db.tratamientos.find().sort({ costo: -1 })
+
+//98.Busca visitas con diagnóstico que contiene “control”.
+
+db.visitas.find({ diagnostico: { $regex: "control", $options: "i" } 
+
+//99.Agrupa facturas mostrando total de dinero por mes.
+
+db.facturas.aggregate([
+  {
+    $addFields: {
+      mes: { $month: { $dateFromString: { dateString: "$fecha_emision" } } },
+      año: { $year: { $dateFromString: { dateString: "$fecha_emision" } } }
+    }
+  },
+  {
+    $group: {
+      _id: { mes: "$mes", año: "$año" },
+      total: { $sum: "$total" }
+    }
+  }
+])
+
+//100.Muestra los hospitales que han generado mayor monto total.
+
+db.facturas.aggregate([
+  {
+    $lookup: {
+      from: "hospitales",
+      localField: "id_hospital",
+      foreignField: "id_hospital",
+      as: "hospital_info"
+    }
+  },
+  { $unwind: "$hospital_info" },
+  {
+    $group: {
+      _id: "$id_hospital",
+      hospital_nombre: { $first: "$hospital_info.nombre" },
+      total_facturado: { $sum: "$total" }
+    }
+  },
+  { $sort: { total_facturado: -1 } },
+  { $limit: 5 }
+])

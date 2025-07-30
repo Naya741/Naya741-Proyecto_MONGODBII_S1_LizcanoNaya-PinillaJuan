@@ -1,0 +1,1794 @@
+
+/**
+ * FUNCIÓN 1: Calcular inventario de medicamentos por hospital
+ * @param {string} hospitalId - ID del hospital (opcional, null para todos)
+ * @param {number} stockMinimo - Stock mínimo para alertas (default: 50)
+ * @returns {Array} Inventario detallado por hospital
+ */
+ function calcularInventarioMedicamentos(hospitalId = null, stockMinimo = 50) {
+  const matchStage = hospitalId ? { $match: { id_hospital: hospitalId } } : { $match: {} }
+
+  return db.medicamentos
+    .aggregate([
+      matchStage,
+      {
+        $lookup: {
+          from: "hospitales",
+          localField: "id_hospital",
+          foreignField: "id_hospital",
+          as: "hospital_info",
+        },
+      },
+      { $unwind: "$hospital_info" },
+      {
+        $lookup: {
+          from: "categorias_medicamentos",
+          localField: "id_categoria",
+          foreignField: "id_categoria",
+          as: "categoria_info",
+        },
+      },
+      { $unwind: "$categoria_info" },
+      {
+        $group: {
+          _id: "$id_hospital",
+          hospital_nombre: { $first: "$hospital_info.nombre" },
+          total_medicamentos: { $sum: 1 },
+          stock_total: { $sum: "$stock_actual" },
+          medicamentos_criticos: {
+            $sum: { $cond: [{ $lt: ["$stock_actual", stockMinimo] }, 1, 0] },
+          },
+          valor_inventario_estimado: { $sum: { $multiply: ["$stock_actual", 1000] } },
+          categorias: { $addToSet: "$categoria_info.nombre" },
+          medicamentos_detalle: {
+            $push: {
+              nombre: "$nombre",
+              stock: "$stock_actual",
+              categoria: "$categoria_info.nombre",
+              fabricante: "$fabricante",
+              alerta_stock: { $lt: ["$stock_actual", stockMinimo] },
+            },
+          },
+        },
+      },
+      { $sort: { stock_total: -1 } },
+    ])
+    .toArray()
+}
+
+/**
+ * FUNCIÓN 2: Generar alerta de medicamentos con stock crítico
+ * @param {number} umbralCritico - Umbral para considerar stock crítico
+ * @param {string} hospitalId - ID del hospital (opcional)
+ * @returns {Array} Medicamentos que requieren reabastecimiento urgente
+ */
+function generarAlertaStockCritico(umbralCritico = 25, hospitalId = null) {
+  const matchStage = hospitalId
+    ? { $match: { stock_actual: { $lte: umbralCritico }, id_hospital: hospitalId } }
+    : { $match: { stock_actual: { $lte: umbralCritico } } }
+
+  return db.medicamentos
+    .aggregate([
+      matchStage,
+      {
+        $lookup: {
+          from: "hospitales",
+          localField: "id_hospital",
+          foreignField: "id_hospital",
+          as: "hospital_info",
+        },
+      },
+      { $unwind: "$hospital_info" },
+      {
+        $lookup: {
+          from: "categorias_medicamentos",
+          localField: "id_categoria",
+          foreignField: "id_categoria",
+          as: "categoria_info",
+        },
+      },
+      { $unwind: "$categoria_info" },
+      {
+        $project: {
+          medicamento: "$nombre",
+          stock_actual: 1,
+          hospital: "$hospital_info.nombre",
+          categoria: "$categoria_info.nombre",
+          fabricante: 1,
+          nivel_criticidad: {
+            $switch: {
+              branches: [
+                { case: { $lte: ["$stock_actual", 10] }, then: "CRÍTICO" },
+                { case: { $lte: ["$stock_actual", 25] }, then: "BAJO" },
+                { case: { $lte: ["$stock_actual", 50] }, then: "MEDIO" },
+              ],
+              default: "NORMAL",
+            },
+          },
+          dias_estimados_restantes: { $ceil: { $divide: ["$stock_actual", 2] } },
+        },
+      },
+      { $sort: { stock_actual: 1, nivel_criticidad: 1 } },
+    ])
+    .toArray()
+}
+
+/**
+ * FUNCIÓN 3: Calcular rotación de medicamentos
+ * @param {string} fechaInicio - Fecha inicio del período
+ * @param {string} fechaFin - Fecha fin del período
+ * @returns {Array} Análisis de rotación de medicamentos
+ */
+function calcularRotacionMedicamentos(fechaInicio, fechaFin) {
+  return db.medicamento_tratamiento
+    .aggregate([
+      {
+        $lookup: {
+          from: "historia_tratamiento",
+          localField: "id_tratamiento",
+          foreignField: "id_tratamiento",
+          as: "tratamiento_info",
+        },
+      },
+      { $unwind: "$tratamiento_info" },
+      {
+        $match: {
+          "tratamiento_info.fecha_inicio": { $gte: fechaInicio, $lte: fechaFin },
+        },
+      },
+      {
+        $lookup: {
+          from: "medicamentos",
+          localField: "id_medicamento",
+          foreignField: "id_medicamento",
+          as: "medicamento_info",
+        },
+      },
+      { $unwind: "$medicamento_info" },
+      {
+        $group: {
+          _id: "$id_medicamento",
+          nombre_medicamento: { $first: "$medicamento_info.nombre" },
+          veces_utilizado: { $sum: 1 },
+          stock_actual: { $first: "$medicamento_info.stock_actual" },
+          categoria: { $first: "$medicamento_info.id_categoria" },
+        },
+      },
+      {
+        $addFields: {
+          indice_rotacion: { $divide: ["$veces_utilizado", "$stock_actual"] },
+          clasificacion_rotacion: {
+            $switch: {
+              branches: [
+                { case: { $gte: [{ $divide: ["$veces_utilizado", "$stock_actual"] }, 0.5] }, then: "ALTA" },
+                { case: { $gte: [{ $divide: ["$veces_utilizado", "$stock_actual"] }, 0.2] }, then: "MEDIA" },
+              ],
+              default: "BAJA",
+            },
+          },
+        },
+      },
+      { $sort: { indice_rotacion: -1 } },
+    ])
+    .toArray()
+}
+
+/**
+ * FUNCIÓN 4: Generar reporte de medicamentos por fabricante
+ * @param {string} fabricante - Nombre del fabricante (opcional)
+ * @returns {Array} Análisis detallado por fabricante
+ */
+function reporteMedicamentosPorFabricante(fabricante = null) {
+  const matchStage = fabricante ? { $match: { fabricante: fabricante } } : { $match: {} }
+
+  return db.medicamentos
+    .aggregate([
+      matchStage,
+      {
+        $lookup: {
+          from: "categorias_medicamentos",
+          localField: "id_categoria",
+          foreignField: "id_categoria",
+          as: "categoria_info",
+        },
+      },
+      { $unwind: "$categoria_info" },
+      {
+        $group: {
+          _id: "$fabricante",
+          total_productos: { $sum: 1 },
+          stock_total: { $sum: "$stock_actual" },
+          categorias_cubiertas: { $addToSet: "$categoria_info.nombre" },
+          productos_detalle: {
+            $push: {
+              nombre: "$nombre",
+              stock: "$stock_actual",
+              categoria: "$categoria_info.nombre",
+            },
+          },
+          stock_promedio: { $avg: "$stock_actual" },
+        },
+      },
+      {
+        $addFields: {
+          diversidad_productos: { $size: "$categorias_cubiertas" },
+          participacion_mercado: "$total_productos",
+        },
+      },
+      { $sort: { total_productos: -1 } },
+    ])
+    .toArray()
+}
+
+/**
+ * FUNCIÓN 5: Calcular necesidades de reabastecimiento
+ * @param {number} diasProyeccion - Días para proyectar necesidades
+ * @param {string} hospitalId - ID del hospital
+ * @returns {Array} Proyección de necesidades de medicamentos
+ */
+function calcularNecesidadesReabastecimiento(diasProyeccion = 30, hospitalId = null) {
+  const matchStage = hospitalId ? { $match: { id_hospital: hospitalId } } : { $match: {} }
+
+  return db.medicamentos
+    .aggregate([
+      matchStage,
+      {
+        $lookup: {
+          from: "medicamento_tratamiento",
+          localField: "id_medicamento",
+          foreignField: "id_medicamento",
+          as: "uso_historico",
+        },
+      },
+      {
+        $addFields: {
+          uso_promedio_diario: { $divide: [{ $size: "$uso_historico" }, 30] },
+          stock_proyectado: {
+            $subtract: [
+              "$stock_actual",
+              { $multiply: [{ $divide: [{ $size: "$uso_historico" }, 30] }, diasProyeccion] },
+            ],
+          },
+        },
+      },
+      {
+        $match: {
+          stock_proyectado: { $lt: 50 },
+        },
+      },
+      {
+        $project: {
+          nombre: 1,
+          stock_actual: 1,
+          uso_promedio_diario: 1,
+          stock_proyectado: 1,
+          cantidad_sugerida: {
+            $ceil: {
+              $multiply: [{ $subtract: [100, "$stock_proyectado"] }, 1.2],
+            },
+          },
+          prioridad: {
+            $switch: {
+              branches: [
+                { case: { $lt: ["$stock_proyectado", 0] }, then: "URGENTE" },
+                { case: { $lt: ["$stock_proyectado", 25] }, then: "ALTA" },
+              ],
+              default: "MEDIA",
+            },
+          },
+        },
+      },
+      { $sort: { stock_proyectado: 1 } },
+    ])
+    .toArray()
+}
+
+// ============================================================================
+// CATEGORÍA 2: REPORTES DE VISITAS MÉDICAS (5 funciones)
+// ============================================================================
+
+/**
+ * FUNCIÓN 6: Generar reporte de visitas por diagnóstico
+ * @param {string} diagnostico - Diagnóstico específico (opcional)
+ * @param {string} fechaInicio - Fecha inicio del período
+ * @param {string} fechaFin - Fecha fin del período
+ * @returns {Array} Reporte detallado de visitas por diagnóstico
+ */
+function reporteVisitasPorDiagnostico(diagnostico = null, fechaInicio, fechaFin) {
+  const matchStage = {
+    $match: {
+      fecha_visita: { $gte: fechaInicio, $lte: fechaFin },
+      ...(diagnostico && { diagnostico: { $regex: diagnostico, $options: "i" } }),
+    },
+  }
+
+  return db.visitas
+    .aggregate([
+      matchStage,
+      {
+        $lookup: {
+          from: "pacientes",
+          localField: "id_paciente",
+          foreignField: "id_paciente",
+          as: "paciente_info",
+        },
+      },
+      { $unwind: "$paciente_info" },
+      {
+        $lookup: {
+          from: "personal",
+          localField: "id_personal",
+          foreignField: "id_personal",
+          as: "medico_info",
+        },
+      },
+      { $unwind: "$medico_info" },
+      {
+        $lookup: {
+          from: "hospitales",
+          localField: "id_hospital",
+          foreignField: "id_hospital",
+          as: "hospital_info",
+        },
+      },
+      { $unwind: "$hospital_info" },
+      {
+        $group: {
+          _id: "$diagnostico",
+          total_casos: { $sum: 1 },
+          pacientes_unicos: { $addToSet: "$id_paciente" },
+          hospitales_involucrados: { $addToSet: "$hospital_info.nombre" },
+          medicos_tratantes: { $addToSet: "$medico_info.nombre" },
+          rango_edades: {
+            $push: {
+              $floor: {
+                $divide: [
+                  { $subtract: [new Date(), { $dateFromString: { dateString: "$paciente_info.fecha_nacimiento" } }] },
+                  365.25 * 24 * 60 * 60 * 1000,
+                ],
+              },
+            },
+          },
+          casos_por_mes: {
+            $push: {
+              mes: { $month: { $dateFromString: { dateString: "$fecha_visita" } } },
+              año: { $year: { $dateFromString: { dateString: "$fecha_visita" } } },
+            },
+          },
+        },
+      },
+      {
+        $addFields: {
+          pacientes_unicos_count: { $size: "$pacientes_unicos" },
+          hospitales_count: { $size: "$hospitales_involucrados" },
+          edad_promedio: { $avg: "$rango_edades" },
+          tasa_recurrencia: {
+            $divide: ["$total_casos", { $size: "$pacientes_unicos" }],
+          },
+        },
+      },
+      { $sort: { total_casos: -1 } },
+    ])
+    .toArray()
+}
+
+/**
+ * FUNCIÓN 7: Análisis de productividad médica
+ * @param {string} fechaInicio - Fecha inicio del período
+ * @param {string} fechaFin - Fecha fin del período
+ * @param {string} hospitalId - ID del hospital (opcional)
+ * @returns {Array} Análisis de productividad por médico
+ */
+function analizarProductividadMedica(fechaInicio, fechaFin, hospitalId = null) {
+  const matchStage = {
+    $match: {
+      fecha_visita: { $gte: fechaInicio, $lte: fechaFin },
+      ...(hospitalId && { id_hospital: hospitalId }),
+    },
+  }
+
+  return db.visitas
+    .aggregate([
+      matchStage,
+      {
+        $lookup: {
+          from: "personal",
+          localField: "id_personal",
+          foreignField: "id_personal",
+          as: "medico_info",
+        },
+      },
+      { $unwind: "$medico_info" },
+      {
+        $lookup: {
+          from: "especialidades",
+          localField: "medico_info.id_especialidad",
+          foreignField: "id_especialidad",
+          as: "especialidad_info",
+        },
+      },
+      { $unwind: "$especialidad_info" },
+      {
+        $group: {
+          _id: "$id_personal",
+          nombre_medico: { $first: "$medico_info.nombre" },
+          especialidad: { $first: "$especialidad_info.nombre_especialidad" },
+          total_consultas: { $sum: 1 },
+          pacientes_unicos: { $addToSet: "$id_paciente" },
+          diagnosticos_diferentes: { $addToSet: "$diagnostico" },
+          consultas_por_dia: {
+            $push: {
+              fecha: "$fecha_visita",
+              hora: "$hora_visita",
+            },
+          },
+        },
+      },
+      {
+        $addFields: {
+          pacientes_unicos_count: { $size: "$pacientes_unicos" },
+          diversidad_diagnosticos: { $size: "$diagnosticos_diferentes" },
+          promedio_consultas_dia: {
+            $divide: [
+              "$total_consultas",
+              {
+                $divide: [
+                  {
+                    $subtract: [
+                      { $dateFromString: { dateString: fechaFin } },
+                      { $dateFromString: { dateString: fechaInicio } },
+                    ],
+                  },
+                  24 * 60 * 60 * 1000,
+                ],
+              },
+            ],
+          },
+          indice_productividad: {
+            $multiply: [
+              { $divide: ["$total_consultas", { $size: "$pacientes_unicos" }] },
+              { $size: "$diagnosticos_diferentes" },
+            ],
+          },
+        },
+      },
+      { $sort: { indice_productividad: -1 } },
+    ])
+    .toArray()
+}
+
+/**
+ * FUNCIÓN 8: Reporte de visitas de emergencia
+ * @param {string} fechaInicio - Fecha inicio del período
+ * @param {string} fechaFin - Fecha fin del período
+ * @returns {Array} Análisis de visitas de emergencia
+ */
+function reporteVisitasEmergencia(fechaInicio, fechaFin) {
+  return db.visitas
+    .aggregate([
+      {
+        $match: {
+          fecha_visita: { $gte: fechaInicio, $lte: fechaFin },
+          $or: [
+            { motivo: { $regex: "emergencia", $options: "i" } },
+            { motivo: { $regex: "urgencia", $options: "i" } },
+            { diagnostico: { $regex: "agudo", $options: "i" } },
+          ],
+        },
+      },
+      {
+        $lookup: {
+          from: "pacientes",
+          localField: "id_paciente",
+          foreignField: "id_paciente",
+          as: "paciente_info",
+        },
+      },
+      { $unwind: "$paciente_info" },
+      {
+        $lookup: {
+          from: "hospitales",
+          localField: "id_hospital",
+          foreignField: "id_hospital",
+          as: "hospital_info",
+        },
+      },
+      { $unwind: "$hospital_info" },
+      {
+        $addFields: {
+          hora_numerica: {
+            $toInt: { $substr: ["$hora_visita", 0, 2] },
+          },
+          turno: {
+            $switch: {
+              branches: [
+                {
+                  case: {
+                    $and: [
+                      { $gte: [{ $toInt: { $substr: ["$hora_visita", 0, 2] } }, 6] },
+                      { $lt: [{ $toInt: { $substr: ["$hora_visita", 0, 2] } }, 14] },
+                    ],
+                  },
+                  then: "MAÑANA",
+                },
+                {
+                  case: {
+                    $and: [
+                      { $gte: [{ $toInt: { $substr: ["$hora_visita", 0, 2] } }, 14] },
+                      { $lt: [{ $toInt: { $substr: ["$hora_visita", 0, 2] } }, 22] },
+                    ],
+                  },
+                  then: "TARDE",
+                },
+              ],
+              default: "NOCHE",
+            },
+          },
+        },
+      },
+      {
+        $group: {
+          _id: {
+            hospital: "$hospital_info.nombre",
+            turno: "$turno",
+          },
+          total_emergencias: { $sum: 1 },
+          diagnosticos_frecuentes: { $addToSet: "$diagnostico" },
+          edad_promedio_pacientes: {
+            $avg: {
+              $floor: {
+                $divide: [
+                  { $subtract: [new Date(), { $dateFromString: { dateString: "$paciente_info.fecha_nacimiento" } }] },
+                  365.25 * 24 * 60 * 60 * 1000,
+                ],
+              },
+            },
+          },
+        },
+      },
+      { $sort: { total_emergencias: -1 } },
+    ])
+    .toArray()
+}
+
+/**
+ * FUNCIÓN 9: Análisis de tiempo de espera
+ * @param {string} fechaInicio - Fecha inicio del período
+ * @param {string} fechaFin - Fecha fin del período
+ * @returns {Array} Análisis de tiempos de espera por hospital
+ */
+function analizarTiempoEspera(fechaInicio, fechaFin) {
+  return db.visitas
+    .aggregate([
+      {
+        $match: {
+          fecha_visita: { $gte: fechaInicio, $lte: fechaFin },
+        },
+      },
+      {
+        $lookup: {
+          from: "hospitales",
+          localField: "id_hospital",
+          foreignField: "id_hospital",
+          as: "hospital_info",
+        },
+      },
+      { $unwind: "$hospital_info" },
+      {
+        $lookup: {
+          from: "areas_medicas",
+          localField: "id_area",
+          foreignField: "id_area",
+          as: "area_info",
+        },
+      },
+      { $unwind: "$area_info" },
+      {
+        $addFields: {
+          hora_cita: { $toInt: { $substr: ["$hora_visita", 0, 2] } },
+          tiempo_espera_estimado: {
+            $switch: {
+              branches: [
+                { case: { $in: ["$motivo", ["Emergencia", "Urgencia"]] }, then: 0 },
+                { case: { $eq: ["$area_info.nombre", "Emergencias"] }, then: 15 },
+                { case: { $eq: ["$area_info.nombre", "Consulta Externa"] }, then: 30 },
+              ],
+              default: 45,
+            },
+          },
+        },
+      },
+      {
+        $group: {
+          _id: {
+            hospital: "$hospital_info.nombre",
+            area: "$area_info.nombre",
+          },
+          visitas_total: { $sum: 1 },
+          tiempo_espera_promedio: { $avg: "$tiempo_espera_estimado" },
+          visitas_por_hora: {
+            $push: {
+              hora: "$hora_cita",
+              motivo: "$motivo",
+            },
+          },
+        },
+      },
+      {
+        $addFields: {
+          eficiencia_atencion: {
+            $switch: {
+              branches: [
+                { case: { $lte: ["$tiempo_espera_promedio", 20] }, then: "EXCELENTE" },
+                { case: { $lte: ["$tiempo_espera_promedio", 40] }, then: "BUENA" },
+                { case: { $lte: ["$tiempo_espera_promedio", 60] }, then: "REGULAR" },
+              ],
+              default: "DEFICIENTE",
+            },
+          },
+        },
+      },
+      { $sort: { tiempo_espera_promedio: 1 } },
+    ])
+    .toArray()
+}
+
+/**
+ * FUNCIÓN 10: Reporte de seguimiento de pacientes crónicos
+ * @param {Array} condicionesCronicas - Lista de condiciones crónicas a buscar
+ * @returns {Array} Análisis de seguimiento de pacientes crónicos
+ */
+function reportePacientesCronicos(condicionesCronicas = ["Diabetes", "Hipertensión", "Asma", "Artritis"]) {
+  const regexPattern = condicionesCronicas.join("|")
+
+  return db.visitas
+    .aggregate([
+      {
+        $match: {
+          diagnostico: { $regex: regexPattern, $options: "i" },
+        },
+      },
+      {
+        $lookup: {
+          from: "pacientes",
+          localField: "id_paciente",
+          foreignField: "id_paciente",
+          as: "paciente_info",
+        },
+      },
+      { $unwind: "$paciente_info" },
+      {
+        $group: {
+          _id: "$id_paciente",
+          nombre_paciente: { $first: "$paciente_info.nombre" },
+          edad: {
+            $first: {
+              $floor: {
+                $divide: [
+                  { $subtract: [new Date(), { $dateFromString: { dateString: "$paciente_info.fecha_nacimiento" } }] },
+                  365.25 * 24 * 60 * 60 * 1000,
+                ],
+              },
+            },
+          },
+          eps: { $first: "$paciente_info.seguro_medico" },
+          total_visitas: { $sum: 1 },
+          diagnosticos: { $addToSet: "$diagnostico" },
+          ultima_visita: { $max: "$fecha_visita" },
+          primera_visita: { $min: "$fecha_visita" },
+        },
+      },
+      {
+        $addFields: {
+          dias_desde_ultima_visita: {
+            $floor: {
+              $divide: [
+                { $subtract: [new Date(), { $dateFromString: { dateString: "$ultima_visita" } }] },
+                24 * 60 * 60 * 1000,
+              ],
+            },
+          },
+          frecuencia_visitas: {
+            $divide: [
+              "$total_visitas",
+              {
+                $divide: [
+                  {
+                    $subtract: [
+                      { $dateFromString: { dateString: "$ultima_visita" } },
+                      { $dateFromString: { dateString: "$primera_visita" } },
+                    ],
+                  },
+                  30 * 24 * 60 * 60 * 1000,
+                ],
+              },
+            ],
+          },
+          estado_seguimiento: {
+            $switch: {
+              branches: [
+                { case: { $lte: ["$dias_desde_ultima_visita", 30] }, then: "AL DÍA" },
+                { case: { $lte: ["$dias_desde_ultima_visita", 60] }, then: "ATENCIÓN" },
+                { case: { $lte: ["$dias_desde_ultima_visita", 90] }, then: "RIESGO" },
+              ],
+              default: "CRÍTICO",
+            },
+          },
+        },
+      },
+      { $sort: { dias_desde_ultima_visita: -1 } },
+    ])
+    .toArray()
+}
+
+// ============================================================================
+// CATEGORÍA 3: ESTADÍSTICAS DE TRATAMIENTOS (5 funciones)
+// ============================================================================
+
+/**
+ * FUNCIÓN 11: Estadísticas de tratamientos por hospital
+ * @param {string} hospitalId - ID del hospital (opcional)
+ * @param {string} fechaInicio - Fecha inicio del período
+ * @param {string} fechaFin - Fecha fin del período
+ * @returns {Array} Estadísticas completas de tratamientos
+ */
+function estadisticasTratamientosHospital(hospitalId = null, fechaInicio, fechaFin) {
+  return db.historia_tratamiento
+    .aggregate([
+      {
+        $match: {
+          fecha_inicio: { $gte: fechaInicio, $lte: fechaFin },
+        },
+      },
+      {
+        $lookup: {
+          from: "tratamientos",
+          localField: "id_tratamiento",
+          foreignField: "id_tratamiento",
+          as: "tratamiento_info",
+        },
+      },
+      { $unwind: "$tratamiento_info" },
+      {
+        $lookup: {
+          from: "areas_medicas",
+          localField: "tratamiento_info.id_area",
+          foreignField: "id_area",
+          as: "area_info",
+        },
+      },
+      { $unwind: "$area_info" },
+      ...(hospitalId
+        ? [
+            {
+              $match: { "area_info.id_hospital": hospitalId },
+            },
+          ]
+        : []),
+      {
+        $lookup: {
+          from: "hospitales",
+          localField: "area_info.id_hospital",
+          foreignField: "id_hospital",
+          as: "hospital_info",
+        },
+      },
+      { $unwind: "$hospital_info" },
+      {
+        $group: {
+          _id: "$area_info.id_hospital",
+          hospital_nombre: { $first: "$hospital_info.nombre" },
+          total_tratamientos: { $sum: 1 },
+          tratamientos_activos: {
+            $sum: { $cond: [{ $eq: ["$estado", "Activo"] }, 1, 0] },
+          },
+          tratamientos_completados: {
+            $sum: { $cond: [{ $eq: ["$estado", "Completado"] }, 1, 0] },
+          },
+          costo_total_tratamientos: { $sum: "$tratamiento_info.costo" },
+          areas_involucradas: { $addToSet: "$area_info.nombre" },
+          tipos_tratamiento: { $addToSet: "$tratamiento_info.nombre" },
+          tasa_exito: {
+            $avg: {
+              $cond: [{ $eq: ["$resultado", "Tratamiento exitoso"] }, 1, 0],
+            },
+          },
+        },
+      },
+      {
+        $addFields: {
+          diversidad_areas: { $size: "$areas_involucradas" },
+          diversidad_tratamientos: { $size: "$tipos_tratamiento" },
+          costo_promedio_tratamiento: { $divide: ["$costo_total_tratamientos", "$total_tratamientos"] },
+          porcentaje_completados: {
+            $multiply: [{ $divide: ["$tratamientos_completados", "$total_tratamientos"] }, 100],
+          },
+        },
+      },
+      { $sort: { total_tratamientos: -1 } },
+    ])
+    .toArray()
+}
+
+/**
+ * FUNCIÓN 12: Análisis de efectividad de tratamientos
+ * @param {string} tipoTratamiento - Tipo específico de tratamiento (opcional)
+ * @returns {Array} Análisis de efectividad por tipo de tratamiento
+ */
+function analizarEfectividadTratamientos(tipoTratamiento = null) {
+  const matchStage = tipoTratamiento
+    ? { $match: { "tratamiento_info.nombre": { $regex: tipoTratamiento, $options: "i" } } }
+    : { $match: {} }
+
+  return db.historia_tratamiento
+    .aggregate([
+      {
+        $lookup: {
+          from: "tratamientos",
+          localField: "id_tratamiento",
+          foreignField: "id_tratamiento",
+          as: "tratamiento_info",
+        },
+      },
+      { $unwind: "$tratamiento_info" },
+      matchStage,
+      {
+        $lookup: {
+          from: "pacientes",
+          localField: "id_paciente",
+          foreignField: "id_paciente",
+          as: "paciente_info",
+        },
+      },
+      { $unwind: "$paciente_info" },
+      {
+        $addFields: {
+          duracion_tratamiento: {
+            $cond: [
+              { $ne: ["$fecha_fin", null] },
+              {
+                $divide: [
+                  {
+                    $subtract: [
+                      { $dateFromString: { dateString: "$fecha_fin" } },
+                      { $dateFromString: { dateString: "$fecha_inicio" } },
+                    ],
+                  },
+                  24 * 60 * 60 * 1000,
+                ],
+              },
+              null,
+            ],
+          },
+          edad_paciente: {
+            $floor: {
+              $divide: [
+                { $subtract: [new Date(), { $dateFromString: { dateString: "$paciente_info.fecha_nacimiento" } }] },
+                365.25 * 24 * 60 * 60 * 1000,
+              ],
+            },
+          },
+        },
+      },
+      {
+        $group: {
+          _id: "$tratamiento_info.nombre",
+          total_aplicaciones: { $sum: 1 },
+          tratamientos_exitosos: {
+            $sum: {
+              $cond: [{ $regex: ["$resultado", /exitoso|favorable|curado/i] }, 1, 0],
+            },
+          },
+          duracion_promedio: { $avg: "$duracion_tratamiento" },
+          costo_promedio: { $avg: "$tratamiento_info.costo" },
+          edad_promedio_pacientes: { $avg: "$edad_paciente" },
+          rango_edades: {
+            $push: "$edad_paciente",
+          },
+        },
+      },
+      {
+        $addFields: {
+          tasa_exito: {
+            $multiply: [{ $divide: ["$tratamientos_exitosos", "$total_aplicaciones"] }, 100],
+          },
+          eficiencia_costo: {
+            $divide: [
+              { $multiply: [{ $divide: ["$tratamientos_exitosos", "$total_aplicaciones"] }, 100] },
+              "$costo_promedio",
+            ],
+          },
+          clasificacion_efectividad: {
+            $switch: {
+              branches: [
+                {
+                  case: { $gte: [{ $divide: ["$tratamientos_exitosos", "$total_aplicaciones"] }, 0.9] },
+                  then: "MUY ALTA",
+                },
+                { case: { $gte: [{ $divide: ["$tratamientos_exitosos", "$total_aplicaciones"] }, 0.7] }, then: "ALTA" },
+                {
+                  case: { $gte: [{ $divide: ["$tratamientos_exitosos", "$total_aplicaciones"] }, 0.5] },
+                  then: "MEDIA",
+                },
+              ],
+              default: "BAJA",
+            },
+          },
+        },
+      },
+      { $sort: { tasa_exito: -1 } },
+    ])
+    .toArray()
+}
+
+/**
+ * FUNCIÓN 13: Reporte de tratamientos por especialidad
+ * @param {string} especialidad - Especialidad médica específica
+ * @returns {Array} Análisis de tratamientos por especialidad
+ */
+function reporteTratamientosPorEspecialidad(especialidad = null) {
+  return db.historia_tratamiento
+    .aggregate([
+      {
+        $lookup: {
+          from: "tratamientos",
+          localField: "id_tratamiento",
+          foreignField: "id_tratamiento",
+          as: "tratamiento_info",
+        },
+      },
+      { $unwind: "$tratamiento_info" },
+      {
+        $lookup: {
+          from: "areas_medicas",
+          localField: "tratamiento_info.id_area",
+          foreignField: "id_area",
+          as: "area_info",
+        },
+      },
+      { $unwind: "$area_info" },
+      ...(especialidad
+        ? [
+            {
+              $match: { "area_info.nombre": { $regex: especialidad, $options: "i" } },
+            },
+          ]
+        : []),
+      {
+        $group: {
+          _id: "$area_info.nombre",
+          total_tratamientos: { $sum: 1 },
+          tratamientos_unicos: { $addToSet: "$tratamiento_info.nombre" },
+          costo_total: { $sum: "$tratamiento_info.costo" },
+          pacientes_atendidos: { $addToSet: "$id_paciente" },
+          resultados_positivos: {
+            $sum: {
+              $cond: [{ $regex: ["$resultado", /exitoso|favorable|mejoría/i] }, 1, 0],
+            },
+          },
+          duracion_promedio: {
+            $avg: {
+              $cond: [
+                { $ne: ["$fecha_fin", null] },
+                {
+                  $divide: [
+                    {
+                      $subtract: [
+                        { $dateFromString: { dateString: "$fecha_fin" } },
+                        { $dateFromString: { dateString: "$fecha_inicio" } },
+                      ],
+                    },
+                    24 * 60 * 60 * 1000,
+                  ],
+                },
+                null,
+              ],
+            },
+          },
+        },
+      },
+      {
+        $addFields: {
+          diversidad_tratamientos: { $size: "$tratamientos_unicos" },
+          pacientes_unicos: { $size: "$pacientes_atendidos" },
+          costo_promedio: { $divide: ["$costo_total", "$total_tratamientos"] },
+          tasa_exito: {
+            $multiply: [{ $divide: ["$resultados_positivos", "$total_tratamientos"] }, 100],
+          },
+          productividad: {
+            $divide: ["$total_tratamientos", "$pacientes_unicos"],
+          },
+        },
+      },
+      { $sort: { total_tratamientos: -1 } },
+    ])
+    .toArray()
+}
+
+/**
+ * FUNCIÓN 14: Análisis de costos de tratamientos
+ * @param {number} umbralCosto - Umbral de costo para análisis
+ * @returns {Array} Análisis detallado de costos
+ */
+function analizarCostosTratamientos(umbralCosto = 500000) {
+  return db.tratamientos
+    .aggregate([
+      {
+        $lookup: {
+          from: "historia_tratamiento",
+          localField: "id_tratamiento",
+          foreignField: "id_tratamiento",
+          as: "aplicaciones",
+        },
+      },
+      {
+        $lookup: {
+          from: "areas_medicas",
+          localField: "id_area",
+          foreignField: "id_area",
+          as: "area_info",
+        },
+      },
+      { $unwind: "$area_info" },
+      {
+        $addFields: {
+          total_aplicaciones: { $size: "$aplicaciones" },
+          ingresos_generados: { $multiply: ["$costo", { $size: "$aplicaciones" }] },
+          categoria_costo: {
+            $switch: {
+              branches: [
+                { case: { $gte: ["$costo", umbralCosto * 2] }, then: "MUY ALTO" },
+                { case: { $gte: ["$costo", umbralCosto] }, then: "ALTO" },
+                { case: { $gte: ["$costo", umbralCosto / 2] }, then: "MEDIO" },
+              ],
+              default: "BAJO",
+            },
+          },
+        },
+      },
+      {
+        $group: {
+          _id: "$categoria_costo",
+          tratamientos: {
+            $push: {
+              nombre: "$nombre",
+              costo: "$costo",
+              area: "$area_info.nombre",
+              aplicaciones: "$total_aplicaciones",
+              ingresos: "$ingresos_generados",
+            },
+          },
+          total_tratamientos: { $sum: 1 },
+          costo_promedio: { $avg: "$costo" },
+          ingresos_totales: { $sum: "$ingresos_generados" },
+          aplicaciones_totales: { $sum: "$total_aplicaciones" },
+        },
+      },
+      {
+        $addFields: {
+          ingreso_promedio_aplicacion: {
+            $divide: ["$ingresos_totales", "$aplicaciones_totales"],
+          },
+        },
+      },
+      { $sort: { costo_promedio: -1 } },
+    ])
+    .toArray()
+}
+
+/**
+ * FUNCIÓN 15: Reporte de adherencia a tratamientos
+ * @param {string} fechaInicio - Fecha inicio del período
+ * @param {string} fechaFin - Fecha fin del período
+ * @returns {Array} Análisis de adherencia de pacientes a tratamientos
+ */
+function reporteAdherenciaTratamientos(fechaInicio, fechaFin) {
+  return db.historia_tratamiento
+    .aggregate([
+      {
+        $match: {
+          fecha_inicio: { $gte: fechaInicio, $lte: fechaFin },
+        },
+      },
+      {
+        $lookup: {
+          from: "pacientes",
+          localField: "id_paciente",
+          foreignField: "id_paciente",
+          as: "paciente_info",
+        },
+      },
+      { $unwind: "$paciente_info" },
+      {
+        $lookup: {
+          from: "tratamientos",
+          localField: "id_tratamiento",
+          foreignField: "id_tratamiento",
+          as: "tratamiento_info",
+        },
+      },
+      { $unwind: "$tratamiento_info" },
+      {
+        $addFields: {
+          duracion_planificada: 30, // Asumimos 30 días como duración estándar
+          duracion_real: {
+            $cond: [
+              { $ne: ["$fecha_fin", null] },
+              {
+                $divide: [
+                  {
+                    $subtract: [
+                      { $dateFromString: { dateString: "$fecha_fin" } },
+                      { $dateFromString: { dateString: "$fecha_inicio" } },
+                    ],
+                  },
+                  24 * 60 * 60 * 1000,
+                ],
+              },
+              {
+                $divide: [
+                  { $subtract: [new Date(), { $dateFromString: { dateString: "$fecha_inicio" } }] },
+                  24 * 60 * 60 * 1000,
+                ],
+              },
+            ],
+          },
+          edad_paciente: {
+            $floor: {
+              $divide: [
+                { $subtract: [new Date(), { $dateFromString: { dateString: "$paciente_info.fecha_nacimiento" } }] },
+                365.25 * 24 * 60 * 60 * 1000,
+              ],
+            },
+          },
+        },
+      },
+      {
+        $addFields: {
+          porcentaje_adherencia: {
+            $multiply: [
+              { $divide: [{ $min: ["$duracion_real", "$duracion_planificada"] }, "$duracion_planificada"] },
+              100,
+            ],
+          },
+          clasificacion_adherencia: {
+            $switch: {
+              branches: [
+                { case: { $gte: [{ $divide: ["$duracion_real", "$duracion_planificada"] }, 0.9] }, then: "EXCELENTE" },
+                { case: { $gte: [{ $divide: ["$duracion_real", "$duracion_planificada"] }, 0.7] }, then: "BUENA" },
+                { case: { $gte: [{ $divide: ["$duracion_real", "$duracion_planificada"] }, 0.5] }, then: "REGULAR" },
+              ],
+              default: "DEFICIENTE",
+            },
+          },
+        },
+      },
+      {
+        $group: {
+          _id: "$clasificacion_adherencia",
+          total_pacientes: { $sum: 1 },
+          edad_promedio: { $avg: "$edad_paciente" },
+          adherencia_promedio: { $avg: "$porcentaje_adherencia" },
+          tratamientos_involucrados: { $addToSet: "$tratamiento_info.nombre" },
+          eps_frecuentes: { $addToSet: "$paciente_info.seguro_medico" },
+        },
+      },
+      { $sort: { adherencia_promedio: -1 } },
+    ])
+    .toArray()
+}
+
+// ============================================================================
+// CATEGORÍA 4: ANÁLISIS FINANCIERO (3 funciones)
+// ============================================================================
+
+/**
+ * FUNCIÓN 16: Análisis de rentabilidad por hospital
+ * @param {string} fechaInicio - Fecha inicio del período
+ * @param {string} fechaFin - Fecha fin del período
+ * @returns {Array} Análisis financiero detallado por hospital
+ */
+function analizarRentabilidadHospital(fechaInicio, fechaFin) {
+  return db.facturas
+    .aggregate([
+      {
+        $match: {
+          fecha_emision: { $gte: fechaInicio, $lte: fechaFin },
+        },
+      },
+      {
+        $lookup: {
+          from: "detalle_factura",
+          localField: "id_factura",
+          foreignField: "id_factura",
+          as: "detalles",
+        },
+      },
+      {
+        $lookup: {
+          from: "pacientes",
+          localField: "id_paciente",
+          foreignField: "id_paciente",
+          as: "paciente_info",
+        },
+      },
+      { $unwind: "$paciente_info" },
+      {
+        $lookup: {
+          from: "hospitales",
+          localField: "id_hospital",
+          foreignField: "id_hospital",
+          as: "hospital_info",
+        },
+      },
+      { $unwind: "$hospital_info" },
+      {
+        $group: {
+          _id: "$id_hospital",
+          hospital_nombre: { $first: "$hospital_info.nombre" },
+          total_facturas: { $sum: 1 },
+          ingresos_totales: { $sum: "$total" },
+          pacientes_atendidos: { $addToSet: "$id_paciente" },
+          eps_atendidas: { $addToSet: "$paciente_info.seguro_medico" },
+          factura_promedio: { $avg: "$total" },
+          factura_maxima: { $max: "$total" },
+          factura_minima: { $min: "$total" },
+        },
+      },
+      {
+        $addFields: {
+          pacientes_unicos: { $size: "$pacientes_atendidos" },
+          diversidad_eps: { $size: "$eps_atendidas" },
+          ingreso_promedio_paciente: {
+            $divide: ["$ingresos_totales", { $size: "$pacientes_atendidos" }],
+          },
+          clasificacion_rentabilidad: {
+            $switch: {
+              branches: [
+                { case: { $gte: ["$ingresos_totales", 10000000] }, then: "MUY ALTA" },
+                { case: { $gte: ["$ingresos_totales", 5000000] }, then: "ALTA" },
+                { case: { $gte: ["$ingresos_totales", 2000000] }, then: "MEDIA" },
+              ],
+              default: "BAJA",
+            },
+          },
+        },
+      },
+      { $sort: { ingresos_totales: -1 } },
+    ])
+    .toArray()
+}
+
+/**
+ * FUNCIÓN 17: Reporte de facturación por EPS
+ * @param {string} fechaInicio - Fecha inicio del período
+ * @param {string} fechaFin - Fecha fin del período
+ * @returns {Array} Análisis de facturación por EPS
+ */
+function reporteFacturacionPorEPS(fechaInicio, fechaFin) {
+  return db.facturas
+    .aggregate([
+      {
+        $match: {
+          fecha_emision: { $gte: fechaInicio, $lte: fechaFin },
+        },
+      },
+      {
+        $lookup: {
+          from: "pacientes",
+          localField: "id_paciente",
+          foreignField: "id_paciente",
+          as: "paciente_info",
+        },
+      },
+      { $unwind: "$paciente_info" },
+      {
+        $lookup: {
+          from: "hospitales",
+          localField: "id_hospital",
+          foreignField: "id_hospital",
+          as: "hospital_info",
+        },
+      },
+      { $unwind: "$hospital_info" },
+      {
+        $group: {
+          _id: "$paciente_info.seguro_medico",
+          total_facturas: { $sum: 1 },
+          monto_total_facturado: { $sum: "$total" },
+          pacientes_unicos: { $addToSet: "$id_paciente" },
+          hospitales_utilizados: { $addToSet: "$hospital_info.nombre" },
+          factura_promedio: { $avg: "$total" },
+          rango_facturas: {
+            $push: "$total",
+          },
+        },
+      },
+      {
+        $addFields: {
+          total_pacientes: { $size: "$pacientes_unicos" },
+          hospitales_count: { $size: "$hospitales_utilizados" },
+          gasto_promedio_paciente: {
+            $divide: ["$monto_total_facturado", { $size: "$pacientes_unicos" }],
+          },
+          frecuencia_uso: {
+            $divide: ["$total_facturas", { $size: "$pacientes_unicos" }],
+          },
+        },
+      },
+      { $sort: { monto_total_facturado: -1 } },
+    ])
+    .toArray()
+}
+
+/**
+ * FUNCIÓN 18: Análisis de morosidad y pagos
+ * @param {number} diasVencimiento - Días para considerar factura vencida
+ * @returns {Array} Análisis de estado de pagos
+ */
+function analizarMorosidadPagos(diasVencimiento = 30) {
+  return db.facturas
+    .aggregate([
+      {
+        $addFields: {
+          dias_desde_emision: {
+            $floor: {
+              $divide: [
+                { $subtract: [new Date(), { $dateFromString: { dateString: "$fecha_emision" } }] },
+                24 * 60 * 60 * 1000,
+              ],
+            },
+          },
+          estado_pago: {
+            $switch: {
+              branches: [
+                {
+                  case: {
+                    $lte: [
+                      {
+                        $floor: {
+                          $divide: [
+                            { $subtract: [new Date(), { $dateFromString: { dateString: "$fecha_emision" } }] },
+                            24 * 60 * 60 * 1000,
+                          ],
+                        },
+                      },
+                      diasVencimiento,
+                    ],
+                  },
+                  then: "AL DÍA",
+                },
+                {
+                  case: {
+                    $lte: [
+                      {
+                        $floor: {
+                          $divide: [
+                            { $subtract: [new Date(), { $dateFromString: { dateString: "$fecha_emision" } }] },
+                            24 * 60 * 60 * 1000,
+                          ],
+                        },
+                      },
+                      diasVencimiento * 2,
+                    ],
+                  },
+                  then: "VENCIDA",
+                },
+              ],
+              default: "MOROSA",
+            },
+          },
+        },
+      },
+      {
+        $lookup: {
+          from: "pacientes",
+          localField: "id_paciente",
+          foreignField: "id_paciente",
+          as: "paciente_info",
+        },
+      },
+      { $unwind: "$paciente_info" },
+      {
+        $group: {
+          _id: {
+            eps: "$paciente_info.seguro_medico",
+            estado: "$estado_pago",
+          },
+          total_facturas: { $sum: 1 },
+          monto_total: { $sum: "$total" },
+          dias_promedio_vencimiento: { $avg: "$dias_desde_emision" },
+          facturas_detalle: {
+            $push: {
+              id_factura: "$id_factura",
+              monto: "$total",
+              dias_vencida: "$dias_desde_emision",
+            },
+          },
+        },
+      },
+      {
+        $group: {
+          _id: "$_id.eps",
+          estados_pago: {
+            $push: {
+              estado: "$_id.estado",
+              total_facturas: "$total_facturas",
+              monto_total: "$monto_total",
+              dias_promedio: "$dias_promedio_vencimiento",
+            },
+          },
+          monto_total_eps: { $sum: "$monto_total" },
+          facturas_total_eps: { $sum: "$total_facturas" },
+        },
+      },
+      { $sort: { monto_total_eps: -1 } },
+    ])
+    .toArray()
+}
+
+// ============================================================================
+// CATEGORÍA 5: REPORTES OPERACIONALES (2 funciones)
+// ============================================================================
+
+/**
+ * FUNCIÓN 19: Dashboard ejecutivo completo
+ * @param {string} fechaInicio - Fecha inicio del período
+ * @param {string} fechaFin - Fecha fin del período
+ * @returns {Object} Dashboard con métricas clave del sistema
+ */
+function generarDashboardEjecutivo(fechaInicio, fechaFin) {
+  // Esta función combina múltiples consultas para crear un dashboard completo
+  const metricas = {}
+
+  // Métricas de pacientes
+  metricas.pacientes = db.pacientes
+    .aggregate([
+      {
+        $group: {
+          _id: null,
+          total_pacientes: { $sum: 1 },
+          distribucion_genero: {
+            $push: "$sexo",
+          },
+          eps_diferentes: { $addToSet: "$seguro_medico" },
+        },
+      },
+      {
+        $addFields: {
+          diversidad_eps: { $size: "$eps_diferentes" },
+        },
+      },
+    ])
+    .toArray()[0]
+
+  // Métricas de visitas del período
+  metricas.visitas = db.visitas
+    .aggregate([
+      {
+        $match: {
+          fecha_visita: { $gte: fechaInicio, $lte: fechaFin },
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          total_visitas: { $sum: 1 },
+          diagnosticos_unicos: { $addToSet: "$diagnostico" },
+          hospitales_activos: { $addToSet: "$id_hospital" },
+        },
+      },
+      {
+        $addFields: {
+          diversidad_diagnosticos: { $size: "$diagnosticos_unicos" },
+          hospitales_con_actividad: { $size: "$hospitales_activos" },
+        },
+      },
+    ])
+    .toArray()[0]
+
+  // Métricas financieras
+  metricas.financiero = db.facturas
+    .aggregate([
+      {
+        $match: {
+          fecha_emision: { $gte: fechaInicio, $lte: fechaFin },
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          total_facturado: { $sum: "$total" },
+          total_facturas: { $sum: 1 },
+          factura_promedio: { $avg: "$total" },
+        },
+      },
+    ])
+    .toArray()[0]
+
+  // Métricas de personal
+  metricas.personal = db.personal
+    .aggregate([
+      {
+        $lookup: {
+          from: "roles",
+          localField: "id_rol",
+          foreignField: "id_rol",
+          as: "rol_info",
+        },
+      },
+      { $unwind: "$rol_info" },
+      {
+        $group: {
+          _id: null,
+          total_personal: { $sum: 1 },
+          nomina_total: { $sum: "$salario" },
+          salario_promedio: { $avg: "$salario" },
+          distribucion_roles: {
+            $push: "$rol_info.nombre_rol",
+          },
+        },
+      },
+    ])
+    .toArray()[0]
+
+  // Métricas de inventario
+  metricas.inventario = db.medicamentos
+    .aggregate([
+      {
+        $group: {
+          _id: null,
+          total_medicamentos: { $sum: 1 },
+          stock_total: { $sum: "$stock_actual" },
+          medicamentos_criticos: {
+            $sum: { $cond: [{ $lt: ["$stock_actual", 50] }, 1, 0] },
+          },
+        },
+      },
+    ])
+    .toArray()[0]
+
+  return {
+    periodo: { inicio: fechaInicio, fin: fechaFin },
+    resumen_ejecutivo: metricas,
+    fecha_generacion: new Date().toISOString(),
+  }
+}
+
+/**
+ * FUNCIÓN 20: Reporte de calidad de atención
+ * @param {string} fechaInicio - Fecha inicio del período
+ * @param {string} fechaFin - Fecha fin del período
+ * @returns {Array} Análisis de indicadores de calidad
+ */
+function reporteCalidadAtencion(fechaInicio, fechaFin) {
+  return db.visitas
+    .aggregate([
+      {
+        $match: {
+          fecha_visita: { $gte: fechaInicio, $lte: fechaFin },
+        },
+      },
+      {
+        $lookup: {
+          from: "personal",
+          localField: "id_personal",
+          foreignField: "id_personal",
+          as: "medico_info",
+        },
+      },
+      { $unwind: "$medico_info" },
+      {
+        $lookup: {
+          from: "hospitales",
+          localField: "id_hospital",
+          foreignField: "id_hospital",
+          as: "hospital_info",
+        },
+      },
+      { $unwind: "$hospital_info" },
+      {
+        $lookup: {
+          from: "areas_medicas",
+          localField: "id_area",
+          foreignField: "id_area",
+          as: "area_info",
+        },
+      },
+      { $unwind: "$area_info" },
+      {
+        $addFields: {
+          es_seguimiento: {
+            $cond: [{ $regex: ["$motivo", /control|seguimiento|revision/i] }, 1, 0],
+          },
+          es_emergencia: {
+            $cond: [{ $regex: ["$motivo", /emergencia|urgencia/i] }, 1, 0],
+          },
+          hora_numerica: { $toInt: { $substr: ["$hora_visita", 0, 2] } },
+        },
+      },
+      {
+        $group: {
+          _id: {
+            hospital: "$hospital_info.nombre",
+            area: "$area_info.nombre",
+          },
+          total_consultas: { $sum: 1 },
+          consultas_seguimiento: { $sum: "$es_seguimiento" },
+          consultas_emergencia: { $sum: "$es_emergencia" },
+          medicos_diferentes: { $addToSet: "$id_personal" },
+          diagnosticos_diferentes: { $addToSet: "$diagnostico" },
+          distribucion_horaria: {
+            $push: "$hora_numerica",
+          },
+        },
+      },
+      {
+        $addFields: {
+          medicos_activos: { $size: "$medicos_diferentes" },
+          diversidad_diagnosticos: { $size: "$diagnosticos_diferentes" },
+          porcentaje_seguimiento: {
+            $multiply: [{ $divide: ["$consultas_seguimiento", "$total_consultas"] }, 100],
+          },
+          porcentaje_emergencia: {
+            $multiply: [{ $divide: ["$consultas_emergencia", "$total_consultas"] }, 100],
+          },
+          consultas_por_medico: {
+            $divide: ["$total_consultas", { $size: "$medicos_diferentes" }],
+          },
+          indicador_calidad: {
+            $multiply: [
+              { $divide: ["$consultas_seguimiento", "$total_consultas"] },
+              { $size: "$medicos_diferentes" },
+              { $size: "$diagnosticos_diferentes" },
+            ],
+          },
+        },
+      },
+      {
+        $addFields: {
+          clasificacion_calidad: {
+            $switch: {
+              branches: [
+                { case: { $gte: ["$indicador_calidad", 50] }, then: "EXCELENTE" },
+                { case: { $gte: ["$indicador_calidad", 25] }, then: "BUENA" },
+                { case: { $gte: ["$indicador_calidad", 10] }, then: "REGULAR" },
+              ],
+              default: "DEFICIENTE",
+            },
+          },
+        },
+      },
+      { $sort: { indicador_calidad: -1 } },
+    ])
+    .toArray()
+}
+
+// ============================================================================
+// FUNCIONES DE UTILIDAD PARA GUARDAR EN MONGODB
+// ============================================================================
+
+/**
+ * Función para guardar todas las UDF en la base de datos
+ * Ejecutar esta función para almacenar las funciones en db.system.js
+ */
+function instalarFuncionesUDF() {
+  const funciones = [
+    { nombre: "calcularInventarioMedicamentos", codigo: calcularInventarioMedicamentos },
+    { nombre: "generarAlertaStockCritico", codigo: generarAlertaStockCritico },
+    { nombre: "calcularRotacionMedicamentos", codigo: calcularRotacionMedicamentos },
+    { nombre: "reporteMedicamentosPorFabricante", codigo: reporteMedicamentosPorFabricante },
+    { nombre: "calcularNecesidadesReabastecimiento", codigo: calcularNecesidadesReabastecimiento },
+    { nombre: "reporteVisitasPorDiagnostico", codigo: reporteVisitasPorDiagnostico },
+    { nombre: "analizarProductividadMedica", codigo: analizarProductividadMedica },
+    { nombre: "reporteVisitasEmergencia", codigo: reporteVisitasEmergencia },
+    { nombre: "analizarTiempoEspera", codigo: analizarTiempoEspera },
+    { nombre: "reportePacientesCronicos", codigo: reportePacientesCronicos },
+    { nombre: "estadisticasTratamientosHospital", codigo: estadisticasTratamientosHospital },
+    { nombre: "analizarEfectividadTratamientos", codigo: analizarEfectividadTratamientos },
+    { nombre: "reporteTratamientosPorEspecialidad", codigo: reporteTratamientosPorEspecialidad },
+    { nombre: "analizarCostosTratamientos", codigo: analizarCostosTratamientos },
+    { nombre: "reporteAdherenciaTratamientos", codigo: reporteAdherenciaTratamientos },
+    { nombre: "analizarRentabilidadHospital", codigo: analizarRentabilidadHospital },
+    { nombre: "reporteFacturacionPorEPS", codigo: reporteFacturacionPorEPS },
+    { nombre: "analizarMorosidadPagos", codigo: analizarMorosidadPagos },
+    { nombre: "generarDashboardEjecutivo", codigo: generarDashboardEjecutivo },
+    { nombre: "reporteCalidadAtencion", codigo: reporteCalidadAtencion },
+  ]
+
+  funciones.forEach((funcion) => {
+    db.system.js.save({
+      _id: funcion.nombre,
+      value: funcion.codigo,
+    })
+    print(`Función ${funcion.nombre} instalada correctamente`)
+  })
+
+  print("Todas las funciones UDF han sido instaladas en db.system.js")
+  print("Para usar las funciones, ejecute: db.loadServerScripts()")
+}
+
+// ============================================================================
+// EJEMPLOS DE USO DE LAS FUNCIONES
+// ============================================================================
+
+/*
+// EJEMPLOS DE EJECUCIÓN:
+
+// 1. Calcular inventario de medicamentos del HUS
+calcularInventarioMedicamentos("HOS001", 50);
+
+// 2. Generar alerta de stock crítico
+generarAlertaStockCritico(25);
+
+// 3. Reporte de visitas por diagnóstico de diabetes
+reporteVisitasPorDiagnostico("Diabetes", "2024-01-01", "2024-12-31");
+
+// 4. Análisis de productividad médica
+analizarProductividadMedica("2024-01-01", "2024-12-31", "HOS001");
+
+// 5. Estadísticas de tratamientos por hospital
+estadisticasTratamientosHospital("HOS001", "2024-01-01", "2024-12-31");
+
+// 6. Dashboard ejecutivo completo
+generarDashboardEjecutivo("2024-01-01", "2024-12-31");
+
+// 7. Reporte de calidad de atención
+reporteCalidadAtencion("2024-01-01", "2024-12-31");
+
+// 8. Análisis de rentabilidad por hospital
+analizarRentabilidadHospital("2024-01-01", "2024-12-31");
+
+// 9. Reporte de pacientes crónicos
+reportePacientesCronicos(["Diabetes", "Hipertensión", "Asma"]);
+
+// 10. Análisis de efectividad de tratamientos
+analizarEfectividadTratamientos("Quimioterapia");
+*/
+
+// ============================================================================
+// INSTRUCCIONES DE INSTALACIÓN
+// ============================================================================
+
+/*
+PASOS PARA INSTALAR LAS FUNCIONES UDF EN MONGODB:
+
+1. Conectarse a MongoDB Compass o MongoDB Shell
+2. Seleccionar la base de datos del hospital
+3. Ejecutar el siguiente comando para instalar todas las funciones:
+   instalarFuncionesUDF();
+
+4. Cargar las funciones en la sesión actual:
+   db.loadServerScripts();
+
+5. Ahora puede ejecutar cualquier función directamente:
+   calcularInventarioMedicamentos("HOS001");
+
+NOTA: Las funciones quedan almacenadas permanentemente en db.system.js
+y estarán disponibles en todas las sesiones futuras después de ejecutar
+db.loadServerScripts();
+*/
+
+print("=".repeat(80))
+print("20 FUNCIONES UDF PARA SISTEMA HOSPITALARIO - CARGADAS CORRECTAMENTE")
+print("=".repeat(80))
+print("Para instalar permanentemente: instalarFuncionesUDF()")
+print("Para cargar en sesión actual: db.loadServerScripts()")
+print("=".repeat(80))
+
+// Fix: Declare the 'db' variable.  This assumes 'db' is available in the MongoDB shell environment.
+// If running this code outside the shell, you'll need to establish a connection and assign it to 'db'.
+// For example:
+// const { MongoClient } = require('mongodb');
+// const uri = "mongodb://localhost:27017/"; // Replace with your connection string
+// const client = new MongoClient(uri);
+// async function run() {
+//   try {
+//     await client.connect();
+//     db = client.db("yourDatabaseName"); // Replace with your database name
+//     // Now you can use 'db' in your functions
+//   } catch (err) {
+//     console.error(err);
+//   }
+// }
+// run();
