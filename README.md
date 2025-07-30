@@ -1239,23 +1239,7 @@ use Hospitales;
 Comenzaremos creando las colecciones de cada apartado de los hospitales: 
 
 1. Creación de la colección directores:
-```js
-db.createCollection("directores", {
-  validator: {
-    $jsonSchema: {
-      bsonType: "object",
-      required: ["_id", "nombre", "documento", "correo", "telefono"],
-      properties: {
-        _id: { bsonType: "string" },
-        nombre: { bsonType: "string" },
-        documento: { bsonType: "string" },
-        correo: { bsonType: "string" },
-        telefono: { bsonType: "string" }
-      }
-    }
-  }
-});
-```
+
 
 * Insertar datos a la coleccion ("directores):
 ```js
@@ -1284,23 +1268,7 @@ db.directores.insertMany([
 ]);
 ```
 2. Creación de la colección hospitales :
-```js
-db.createCollection("hospitales", {
-  validator: {
-    $jsonSchema: {
-      bsonType: "object",
-      required: ["_id", "nombre", "ciudad", "direccion", "id_director"],
-      properties: {
-        _id: { bsonType: "string" },
-        nombre: { bsonType: "string" },
-        ciudad: { bsonType: "string" },
-        direccion: { bsonType: "string" },
-        id_director: { bsonType: "string" }
-      }
-    }
-  }
-});
-```
+
 
 * Insertar datos a la coleccion ("hospitales"):
 ```js
@@ -1335,22 +1303,8 @@ db.hospitales.insertMany([ {
 ]);
 ```
 
-3. Creación de la colección roles :
-```js
-db.createCollection("roles", {
-  validator: {
-    $jsonSchema: {
-      bsonType: "object",
-      required: ["_id", "nombre_rol"],
-      properties: {
-        _id: { bsonType: "string" },
-        nombre_rol: { bsonType: "string" }
-      }
-    }
-  }
-});
-```
 
+2. Crear la colección roles:
 * Insertar datos a la coleccion ("roles"):
 ```js
 db.roles.insertMany([ {
@@ -1385,20 +1339,6 @@ db.roles.insertMany([ {
 ```
 
 4. Creación de la colección especialidades :
-```js
-db.createCollection("especialidades", {
-  validator: {
-    $jsonSchema: {
-      bsonType: "object",
-      required: ["_id", "nombre_especialidad"],
-      properties: {
-        _id: { bsonType: "string" },
-        nombre_especialidad: { bsonType: "string" }
-      }
-    }
-  }
-});
-```
 
 * Insertar datos a la coleccion ("especialidades"):
 ```js
@@ -1518,21 +1458,7 @@ db.especialidades.insertMany([ {
 ```
 
 5. Creación de la colección areas_medicas :
-```js
-db.createCollection("areas_medicas", {
-  validator: {
-    $jsonSchema: {
-      bsonType: "object",
-      required: ["_id", "nombre", "id_hospital"],
-      properties: {
-        _id: { bsonType: "string" },
-        nombre: { bsonType: "string" },
-        id_hospital: { bsonType: "string" }
-      }
-    }
-  }
-});
-```
+
 
 * Insertar datos a la coleccion ("areas_medicas"):
 ```js
@@ -1740,28 +1666,6 @@ db.areas_medicas.insertMany([ {
 ```
 
 6. Creacion de la coleccion personal:
-```js
-db.createCollection("personal", {
-  validator: {
-    $jsonSchema: {
-      bsonType: "object",
-      required: ["_id", "id_hospital", "nombre", "documento", "id_rol", "correo", "telefono", "salario"],
-      properties: {
-        _id: { bsonType: "string" },
-        id_hospital: { bsonType: "string" },
-        nombre: { bsonType: "string" },
-        documento: { bsonType: "string" },
-        numero_colegiatura: { bsonType: ["string", "null"] },
-        id_rol: { bsonType: "string" },
-        id_especialidad: { bsonType: ["string", "null"] },
-        correo: { bsonType: "string" },
-        telefono: { bsonType: "string" },
-        salario: { bsonType: "number" }
-      }
-    }
-  }
-});
-```
 
 * Insertar datos a la coleccion ("personal"):
 ```js
@@ -2081,28 +1985,7 @@ db.personal.insertMany([{
 ```
 
 6. Creación de la colección ("Pacientes"):
-```js
-db.createCollection("pacientes", {
-  validator: {
-    $jsonSchema: {
-      bsonType: "object",
-      required: ["_id", "historia_clinica", "nombre", "documento", "fecha_nacimiento", "sexo", "correo", "telefono", "direccion", "seguro_medico"],
-      properties: {
-        _id: { bsonType: "string" },
-        historia_clinica: { bsonType: "string" },
-        nombre: { bsonType: "string" },
-        documento: { bsonType: "string" },
-        fecha_nacimiento: { bsonType: "string" },
-        sexo: { bsonType: "string" },
-        correo: { bsonType: "string" },
-        telefono: { bsonType: "string" },
-        direccion: { bsonType: "string" },
-        seguro_medico: { bsonType: "string" }
-      }
-    }
-  }
-});
-```
+
 
 * Insertar datos a la colección pacientes:
 ```js
@@ -2471,21 +2354,6 @@ db.pacientes.insertMany([
 ```
 
 7. Creacion de la colección ("categorias_medicamentos"):
-```js
-db.createCollection("categorias_medicamentos", {
-  validator: {
-    $jsonSchema: {
-      bsonType: "object",
-      required: ["_id", "nombre", "id_hospital"],
-      properties: {
-        _id: { bsonType: "string" },
-        nombre: { bsonType: "string" },
-        id_hospital: { bsonType: "string" }
-      }
-    }
-  }
-});
-```
 
 * Insertar datos a la colección categorias_medicamentos:
 ```js
@@ -2534,21 +2402,6 @@ db.categorias_medicamentos.insertMany([
 ```
 
 8. Creacion de la colección ("medicamentos"):
-```js
-db.createCollection("categorias_medicamentos", {
-  validator: {
-    $jsonSchema: {
-      bsonType: "object",
-      required: ["_id", "nombre", "id_hospital"],
-      properties: {
-        _id: { bsonType: "string" },
-        nombre: { bsonType: "string" },
-        id_hospital: { bsonType: "string" }
-      }
-    }
-  }
-});
-```
 
 * Insertar datos a la colección medicamentos:
 ```js
@@ -2716,22 +2569,7 @@ db.medicamentos.insertMany([
 ]);
 ```
 
-10. Creacion de la colección ("visitas"):
-```js
-db.createCollection("categorias_medicamentos", {
-  validator: {
-    $jsonSchema: {
-      bsonType: "object",
-      required: ["_id", "nombre", "id_hospital"],
-      properties: {
-        _id: { bsonType: "string" },
-        nombre: { bsonType: "string" },
-        id_hospital: { bsonType: "string" }
-      }
-    }
-  }
-});
-```
+9. Creacion de la colección ("visitas"):
 
 * Insertar datos a la colección visitas:
 ```js
@@ -2905,22 +2743,7 @@ db.visitas.insertMany([
 ]);
 ```
 
-11. Creacion de la colección ("hitoria_tratamiento"):
-```js
-db.createCollection("historia_tratamiento", {
-  validator: {
-    $jsonSchema: {
-      bsonType: "object",
-      required: ["_id", "nombre", "id_hospital"],
-      properties: {
-        _id: { bsonType: "string" },
-        nombre: { bsonType: "string" },
-        id_hospital: { bsonType: "string" }
-      }
-    }
-  }
-});
-```
+10. Creacion de la colección ("hitoria_tratamiento"):
 
 * Insertar datos a la colección historia_tratamiento:
 ```js
@@ -2991,22 +2814,7 @@ db.historia_tratamiento.insertMany([
 ]);
 ```
 
-12. Creacion de la colección ("medicamento_tratamiento"):
-```js
-db.createCollection("historia_tratamiento", {
-  validator: {
-    $jsonSchema: {
-      bsonType: "object",
-      required: ["_id", "nombre", "id_hospital"],
-      properties: {
-        _id: { bsonType: "string" },
-        nombre: { bsonType: "string" },
-        id_hospital: { bsonType: "string" }
-      }
-    }
-  }
-});
-```
+11. Creacion de la colección ("medicamento_tratamiento"):
 
 * Insertar datos a la colección medicamento_tratamiento:
 ```js
@@ -3069,22 +2877,7 @@ db.medicamento_tratamiento.insertMany([{
 ]);
 ```
 
-13. Creacion de la colección ("facturas"):
-```js
-db.createCollection("faturas", {
-  validator: {
-    $jsonSchema: {
-      bsonType: "object",
-      required: ["_id", "nombre", "id_hospital"],
-      properties: {
-        _id: { bsonType: "string" },
-        nombre: { bsonType: "string" },
-        id_hospital: { bsonType: "string" }
-      }
-    }
-  }
-});
-```
+12. Creacion de la colección ("facturas"):
 
 * Insertar datos a la colección facturas:
 ```js
@@ -3145,22 +2938,8 @@ db.facturas.insertMany([{
 ]);
 ```
 
-14. Creacion de la colección ("datalle_factura"):
-```js
-db.createCollection("detalle_factura", {
-  validator: {
-    $jsonSchema: {
-      bsonType: "object",
-      required: ["_id", "nombre", "id_hospital"],
-      properties: {
-        _id: { bsonType: "string" },
-        nombre: { bsonType: "string" },
-        id_hospital: { bsonType: "string" }
-      }
-    }
-  }
-});
-```
+13. Creacion de la colección ("datalle_factura"):
+
 
 * Insertar datos a la colección detalle_factura:
 ```js
