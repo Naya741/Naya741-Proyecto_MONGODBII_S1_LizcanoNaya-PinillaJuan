@@ -1,5 +1,6 @@
 ## Sistema Hospitalario MongoDB 🏥
-
+Link youtube sustentación del proyecto:
+https://youtu.be/Ndg1YKkwpOY
 
 ## Introducción 
 Este documento servirá como una guía detallada del proceso completo de diseño, estructuración e implementación de un sistema de base de datos que permita gestionar de manera eficiente todas las operaciones relacionadas con la administración de un sistema hospitalario . El objetivo principal es gestionar eficazmente la gestión de los hospitales, pacientes, médicos, tratamientos, medicamentos, visitas médicas, historiales clínicos, áreas especializadas y personal administrativo.
